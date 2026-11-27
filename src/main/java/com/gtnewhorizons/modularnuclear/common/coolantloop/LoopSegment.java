@@ -26,7 +26,7 @@ public class LoopSegment {
     private double minorLossK; // Loss coefficient K (dimensionless)
     /** Scales the segment's whole pressure drop: pipe materials (pipes.yaml) make long loops cost less flow. */
     private double frictionMultiplier = 1.0;
-    private final Double maxPressureBar; // Bursting limit in bar, or NO_LIMIT
+    private Double maxPressureBar; // Bursting limit in bar, or NO_LIMIT
     private final Double maxTemperatureCelsius; // Maximum safe operating temperature in deg C, or NO_LIMIT
 
     private double currentTemperatureCelsius; // Current temperature of coolant in this segment
@@ -116,6 +116,11 @@ public class LoopSegment {
     /**
      * Volume of fluid contained within this segment in m^3.
      */
+    /** Lowers the segment's bursting pressure to that of something weaker on it (a compact pump's ports). */
+    public void capMaxPressureBar(double bar) {
+        if (maxPressureBar == NO_LIMIT || bar < maxPressureBar) maxPressureBar = bar;
+    }
+
     public double getVolume() {
         if (customVolumeM3 >= 0.0) {
             return customVolumeM3;

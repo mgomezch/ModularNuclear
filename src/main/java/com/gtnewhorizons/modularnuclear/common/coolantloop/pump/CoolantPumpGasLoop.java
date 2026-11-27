@@ -129,6 +129,7 @@ final class CoolantPumpGasLoop {
         double ambientK = p.getBiomeTemperatureCelsius() + 273.15;
 
         if (!p.isAllowedToWork()) {
+            if (p.host.recoversChargeWhenStopped()) return pumpDown(p, baseTE, e);
             stopCompressors(p, baseTE);
             boolean ok = runLoop(p, e);
             p.setLoopStatusKey(

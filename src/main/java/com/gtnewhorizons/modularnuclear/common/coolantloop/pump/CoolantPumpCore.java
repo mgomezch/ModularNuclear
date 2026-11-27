@@ -601,6 +601,8 @@ public class CoolantPumpCore {
             long part = cumulative[i] - (i > 0 ? cumulative[i - 1] : 0L);
             rate = Math.max(rate, (part * FILL_PARTS_PER_SECOND + 19) / 20);
         }
+        double factor = host.getPumpLimits().fillRateFactor;
+        if (factor != 1.0) rate = Math.max(1L, Math.round(rate * factor));
         return Math.min(rate, Integer.MAX_VALUE);
     }
 

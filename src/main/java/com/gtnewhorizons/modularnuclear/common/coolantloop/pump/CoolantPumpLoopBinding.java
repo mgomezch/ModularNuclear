@@ -71,6 +71,7 @@ final class CoolantPumpLoopBinding {
         boolean restarting = pump.mRestartCrawlRunning;
         pump.mRestartCrawlRunning = false;
         boolean atRest = pump.mLoopAtRest;
+        result = withinLimits(pump, result);
         if (result == null || !result.isSuccess) {
             pump.releaseLoopDevices();
             pump.releaseLoopChunks();
@@ -152,6 +153,32 @@ final class CoolantPumpLoopBinding {
                 pump.mCurrentFillLiters);
         }
         return true;
+    }
+
+    /**
+     * The crawl's result under the pump's limits (PumpLimits): a loop too large for the pump fails, and the
+     * segments at the pump burst at the pump's pressure if that is lower than their pipe's.
+     */
+    private static LoopGraphCrawler.CrawlResult withinLimits(CoolantPumpCore pump,
+        LoopGraphCrawler.CrawlResult result) {
+        PumpLimits limits = pump.host.getPumpLimits();
+        if (result == null || !result.isSuccess || limits == PumpLimits.UNLIMITED || result.segments.isEmpty()) {
+            return result;
+        }
+        double liters = 0.0;
+        for (LoopSegment s : result.segments) liters += s.getVolume() * 1000.0;
+        if (liters > limits.maxLoopVolumeLiters) {
+            return LoopGraphCrawler.CrawlResult.fail(
+                LocalizedText.of(
+                    "modularnuclear.coolant_loop.crawler.loop_too_large_for_pump",
+                    liters,
+                    limits.maxLoopVolumeLiters));
+        }
+        result.segments.get(0)
+            .capMaxPressureBar(limits.maxPressureBar);
+        result.segments.get(result.segments.size() - 1)
+            .capMaxPressureBar(limits.maxPressureBar);
+        return result;
     }
 
     static void rebindRestoredLoop(CoolantPumpCore pump, IGregTechTileEntity aBaseMetaTileEntity) {

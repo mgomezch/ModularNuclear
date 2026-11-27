@@ -20,6 +20,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.IInlineLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.ICoolantPumpHost;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantLoopMachineGui;
 import com.gtnewhorizons.modularnuclear.common.gui.IReadoutLines;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
@@ -393,7 +394,7 @@ public abstract class MTEInlineLoopMachine<T extends MTEInlineLoopMachine<T>> ex
 
     /** The gas loop the machine is on, or null if it is on none or on a liquid loop. */
     protected GasLoopEngine gasEngine() {
-        if (mPump instanceof MTECoolantPump p && p.getEngine() instanceof GasLoopEngine g) return g;
+        if (mPump instanceof ICoolantPumpHost p && p.getEngine() instanceof GasLoopEngine g) return g;
         return null;
     }
 
@@ -404,7 +405,7 @@ public abstract class MTEInlineLoopMachine<T extends MTEInlineLoopMachine<T>> ex
 
     /** Ambient temperature in K: the loop's pump's, or the machine's own biome's if it is on no loop. */
     protected double ambientK() {
-        if (mPump instanceof MTECoolantPump p) return p.getBiomeTemperatureCelsius() + 273.15;
+        if (mPump instanceof ICoolantPumpHost p) return p.getBiomeTemperatureCelsius() + 273.15;
         IGregTechTileEntity te = getBaseMetaTileEntity();
         if (te != null && te.getWorld() != null) {
             return MTECoolantPump

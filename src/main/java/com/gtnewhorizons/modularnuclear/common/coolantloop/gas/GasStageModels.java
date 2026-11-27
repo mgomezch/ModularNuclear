@@ -15,17 +15,27 @@ public final class GasStageModels {
     /**
      * A compressor: a displacement (m^3/s of suction gas at full speed), a clearance that lowers its volumetric
      * efficiency as the pressure ratio rises, and an isentropic efficiency.
+     * <p>
+     * A compressor with a built-in pressure ratio above 1 (the compact ones: Note [Compact loop machines]) compresses
+     * its gas at least that far before letting it out, as a screw compressor with a fixed volume ratio does: on a
+     * loop whose own ratio is lower, the excess work goes into the gas as heat.
      */
     public static final class Compressor {
 
         public final double displacement;
         public final double isentropicEfficiency;
         public final double clearance;
+        public final double builtInRatio;
 
         public Compressor(double displacementM3s, double isentropicEfficiency, double clearance) {
+            this(displacementM3s, isentropicEfficiency, clearance, 1.0);
+        }
+
+        public Compressor(double displacementM3s, double isentropicEfficiency, double clearance, double builtInRatio) {
             this.displacement = displacementM3s;
             this.isentropicEfficiency = isentropicEfficiency;
             this.clearance = clearance;
+            this.builtInRatio = Math.max(1.0, builtInRatio);
         }
 
         /** Volumetric efficiency at a pressure ratio: 1 - c (r^(1/gamma) - 1), never below zero. */
@@ -48,9 +58,24 @@ public final class GasStageModels {
 
         /** Specific shaft work (J/kg) from the inlet to the outlet pressure. */
         public double specificWork(GasPressureStage.Context c) {
-            if (c.pressureOut <= c.pressureIn) return 0.0;
-            double hs = c.gas.isentropicEnthalpy(c.pressureIn, c.enthalpyIn, c.pressureOut);
+            double pressureOut = Math.max(c.pressureOut, c.pressureIn * builtInRatio);
+            if (pressureOut <= c.pressureIn) return 0.0;
+            double hs = c.gas.isentropicEnthalpy(c.pressureIn, c.enthalpyIn, pressureOut);
             return Math.max(0.0, hs - c.enthalpyIn) / isentropicEfficiency;
+        }
+
+        /** How far past its built-in ratio a compressor with one lets its loop's ratio go before it has stopped. */
+        public static final double UNLOADING_BAND = 0.5;
+
+        /**
+         * The share of its speed a compressor with a built-in ratio runs at: all of it up to that ratio, then less
+         * as the loop's ratio passes it, down to none at (1 + UNLOADING_BAND) times it. So it doesn't pump a lightly
+         * loaded evaporator down to a vacuum at full power: it holds the loop's ratio in that band and idles.
+         */
+        public double unloading(GasPressureStage.Context c) {
+            if (builtInRatio <= 1.0 || c.pressureIn <= 0.0) return 1.0;
+            double over = c.pressureOut / c.pressureIn / builtInRatio - 1.0;
+            return Math.max(0.0, Math.min(1.0, 1.0 - over / UNLOADING_BAND));
         }
 
         /** Runs at a speed between 0 and 1. */

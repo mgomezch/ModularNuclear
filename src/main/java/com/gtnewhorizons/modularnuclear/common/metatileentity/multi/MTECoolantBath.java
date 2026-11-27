@@ -29,6 +29,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.SegmentHeat;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.ICoolantPumpHost;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantBathGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantBathSlot;
@@ -263,7 +264,7 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         int activeCount = getActiveItemCount();
         // No flow, no exchange: items in a bath on a still loop keep their temperature
         if (activeCount <= 0 || coolantFlowRateM3s <= 1e-9) return;
-        if (segment.holdsGas() && mConnectedPump instanceof MTECoolantPump pump
+        if (segment.holdsGas() && mConnectedPump instanceof ICoolantPumpHost pump
             && pump.getEngine() instanceof GasLoopEngine gasLoop) {
             exchangeWithGas(gasLoop.getGas(), coolantFlowRateM3s, dt, segment);
             return;

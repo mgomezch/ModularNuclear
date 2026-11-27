@@ -171,7 +171,7 @@ public class MTERadiator extends MTEInlineLoopMachine<MTERadiator> {
      * Cools liquid coolant flowing through towards ambient, as the gas path does: effectiveness-NTU from the inlet
      * temperature, applied over what flows through in the step. Returns the heat taken out, J.
      */
-    private static double coolLiquid(LoopSegment s, CoolantFluidProperty fluid, double flowM3s, double ua,
+    public static double coolLiquid(LoopSegment s, CoolantFluidProperty fluid, double flowM3s, double ua,
         double ambientC, double dt) {
         if (fluid == null || flowM3s <= 1e-9) return 0.0;
         double rhoCp = fluid.getDensity() * fluid.getSpecificHeat();

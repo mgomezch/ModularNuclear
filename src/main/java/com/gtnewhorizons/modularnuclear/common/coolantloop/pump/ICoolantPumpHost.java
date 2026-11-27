@@ -70,6 +70,14 @@ public interface ICoolantPumpHost extends ICoolantLoopPump {
     /** The impeller that drives a liquid loop, or null for a pump that only charges gas loops. */
     PumpImpeller getImpeller();
 
+    /**
+     * Whether a pump that is not allowed to work takes its gas loop's charge back into its reservoir once the loop
+     * has come to rest. A multiblock pump does that only with its discharge hatch disabled.
+     */
+    default boolean recoversChargeWhenStopped() {
+        return false;
+    }
+
     /** What the pump can take. */
     default PumpLimits getPumpLimits() {
         return PumpLimits.UNLIMITED;

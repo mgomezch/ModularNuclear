@@ -3,6 +3,7 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity;
 import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.compact.CompactLoopMachines;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedOutput;
@@ -106,6 +107,7 @@ public class CoolantLoopMetaTileEntities {
         expansionValve = new MTEExpansionValve(EXPANSION_VALVE_ID, "multimachine.expansionvalve", "Expansion Valve");
         turboExpander = new MTETurboExpander(TURBO_EXPANDER_ID, "multimachine.turboexpander", "Turbo-Expander");
         radiator = new MTERadiator(RADIATOR_ID, "multimachine.radiator", "Radiator");
+        CompactLoopMachines.init();
 
         for (int s = 0; s < PIPE_THICKNESSES.length; s++) {
             float thick = PIPE_THICKNESSES[s];
