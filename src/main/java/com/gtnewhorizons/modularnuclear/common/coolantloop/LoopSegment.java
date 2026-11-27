@@ -524,6 +524,123 @@ public class LoopSegment {
         return (fluid.getDensity() * velocity * diameter) / fluid.getDynamicViscosity();
     }
 
+    // --- Gas loops (GasLoopEngine): see Note [Gas loop pressure zones] ---
+
+    /** Specific enthalpy of the gas in J/kg; NaN on a liquid loop. */
+    private double gasEnthalpy = Double.NaN;
+    private double gasMassKg = 0.0;
+    private double gasQuality = 0.0;
+    private double gasDensity = 0.0;
+    /** Enthalpy of the gas flowing in over the last step, J/kg. */
+    private double gasIncomingEnthalpy = Double.NaN;
+    /** Mass flow through the segment over the last step, kg/s. */
+    private double gasMassFlow = 0.0;
+    /** Heat devices put in (or took out, negative) since the last step, in J: the next step applies it. */
+    private double pendingGasHeatJoules = 0.0;
+
+    /** Whether the segment holds gas-loop state. */
+    public boolean holdsGas() {
+        return !Double.isNaN(gasEnthalpy);
+    }
+
+    public double getGasEnthalpy() {
+        return gasEnthalpy;
+    }
+
+    public void setGasEnthalpy(double h) {
+        this.gasEnthalpy = h;
+    }
+
+    public double getGasMassKg() {
+        return gasMassKg;
+    }
+
+    public void setGasMassKg(double kg) {
+        this.gasMassKg = Math.max(0.0, kg);
+    }
+
+    /** Vapour mass fraction of the gas: 0 for liquid, 1 for vapour. */
+    public double getGasQuality() {
+        return gasQuality;
+    }
+
+    public double getGasDensity() {
+        return gasDensity;
+    }
+
+    /** Records the derived state GasLoopEngine computes from pressure and enthalpy. */
+    public void setGasDerived(double quality, double density) {
+        this.gasQuality = quality;
+        this.gasDensity = density;
+    }
+
+    public double getGasIncomingEnthalpy() {
+        return Double.isNaN(gasIncomingEnthalpy) ? gasEnthalpy : gasIncomingEnthalpy;
+    }
+
+    public void setGasIncomingEnthalpy(double h) {
+        this.gasIncomingEnthalpy = h;
+    }
+
+    public double getGasMassFlow() {
+        return gasMassFlow;
+    }
+
+    public void setGasMassFlow(double kgPerSecond) {
+        this.gasMassFlow = kgPerSecond;
+    }
+
+    public double getPendingGasHeatJoules() {
+        return pendingGasHeatJoules;
+    }
+
+    /** Adds heat (J, negative to remove it) for the next gas loop step to apply. See Note [Gas loop pressure zones] */
+    public void addPendingGasHeatJoules(double joules) {
+        this.pendingGasHeatJoules += joules;
+    }
+
+    private double gasHeatFloor = Double.NEGATIVE_INFINITY;
+    private double gasHeatCeiling = Double.POSITIVE_INFINITY;
+
+    /**
+     * Bounds the enthalpy the next step may leave the gas at: a device that cools it towards a temperature sets a
+     * floor, one that heats it a ceiling. See Note [Gas loop pressure zones]
+     */
+    public void boundGasHeat(double joules, double boundEnthalpy) {
+        if (joules < 0.0) gasHeatFloor = Math.max(gasHeatFloor, boundEnthalpy);
+        else if (joules > 0.0) gasHeatCeiling = Math.min(gasHeatCeiling, boundEnthalpy);
+    }
+
+    public double takeGasHeatFloor() {
+        double f = gasHeatFloor;
+        gasHeatFloor = Double.NEGATIVE_INFINITY;
+        return f;
+    }
+
+    public double takeGasHeatCeiling() {
+        double c = gasHeatCeiling;
+        gasHeatCeiling = Double.POSITIVE_INFINITY;
+        return c;
+    }
+
+    /** Takes the pending heat for a step to apply, leaving none. */
+    public double takePendingGasHeatJoules() {
+        double j = pendingGasHeatJoules;
+        pendingGasHeatJoules = 0.0;
+        return j;
+    }
+
+    /** Drops the gas state: the segment is on a liquid loop. */
+    public void clearGasState() {
+        gasEnthalpy = Double.NaN;
+        gasMassKg = 0.0;
+        gasQuality = 0.0;
+        gasDensity = 0.0;
+        gasMassFlow = 0.0;
+        gasIncomingEnthalpy = Double.NaN;
+        pendingGasHeatJoules = 0.0;
+    }
+
     /** Takes over the changing state (temperatures, pressures, dissolved gas) of the segment this one replaces. */
     public void copyStateFrom(LoopSegment other) {
         if (other == null) return;
@@ -534,6 +651,13 @@ public class LoopSegment {
         dissolvedGases.clear();
         dissolvedGases.putAll(other.dissolvedGases);
         fallbackGasFraction = other.fallbackGasFraction;
+        gasEnthalpy = other.gasEnthalpy;
+        gasMassKg = other.gasMassKg;
+        gasQuality = other.gasQuality;
+        gasDensity = other.gasDensity;
+        gasMassFlow = other.gasMassFlow;
+        gasIncomingEnthalpy = other.gasIncomingEnthalpy;
+        pendingGasHeatJoules = other.pendingGasHeatJoules;
     }
 
     /**
@@ -563,6 +687,10 @@ public class LoopSegment {
         m.put("manifold", manifold);
         if (customVolumeM3 >= 0.0) {
             m.put("customVol", customVolumeM3);
+        }
+        if (holdsGas()) {
+            m.put("gasH", gasEnthalpy);
+            m.put("gasM", gasMassKg);
         }
         List<String> ups = new ArrayList<>();
         for (LoopSegment up : upstreamSegments) {
@@ -602,6 +730,10 @@ public class LoopSegment {
         if (m.containsKey("cap")) seg.setCapacityLiters(StateValues.lng(m, "cap", 0L));
         if (m.containsKey("manifold")) seg.setManifold(StateValues.bool(m, "manifold", false));
         if (m.containsKey("customVol")) seg.setCustomVolumeM3(StateValues.dbl(m, "customVol", 0.0));
+        if (m.containsKey("gasH")) {
+            seg.setGasEnthalpy(StateValues.dbl(m, "gasH", 0.0));
+            seg.setGasMassKg(StateValues.dbl(m, "gasM", 0.0));
+        }
         if (outUpstreamIds != null && m.get("upstreams") instanceof List<?>ups) {
             for (Object o : ups) {
                 if (o != null) outUpstreamIds.add(o.toString());

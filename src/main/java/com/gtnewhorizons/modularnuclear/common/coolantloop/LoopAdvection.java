@@ -132,6 +132,64 @@ public final class LoopAdvection {
     }
 
     /**
+     * The same implicit step for any quantity carried by the flow, with per-segment capacities and inflows: what a gas
+     * loop advects (its enthalpy, with each segment's mass as capacity and its mass flow as inflow). A fixed segment
+     * keeps the value given (a compressor's outlet, say) and only feeds its downstreams; a source adds to a
+     * segment's content over the step (heat, in units of capacity x value). Updates {@code value} in place and
+     * fills {@code incoming} with each segment's mixed inflow. backwardEuler fixes theta at 1, which conserves the
+     * quantity exactly when inflows differ from outflows along the loop (a gas loop's mass flows). See Note [Gas
+     * loop pressure zones]
+     *
+     * @param capacity what each segment holds (kg for a gas loop)
+     * @param inflow   what flows into each segment over the step (kg)
+     */
+    public static void stepScalar(Plan plan, List<LoopSegment> segments, double[] capacity, double[] inflow,
+        double[] source, boolean[] fixed, double[] value, double[] incoming, boolean backwardEuler) {
+        int n = segments.size();
+        Graph g = plan.graphFor(segments);
+        double[] old = g.old;
+        System.arraycopy(value, 0, old, 0, n);
+        double theta = backwardEuler ? 1.0 : 0.5;
+        for (int i = 0; i < n && !backwardEuler; i++) {
+            if (fixed[i] || g.upstreams[i].length == 0 || inflow[i] <= 0.0) continue;
+            theta = Math.max(theta, capacity[i] > 0.0 ? 1.0 - capacity[i] / inflow[i] : 1.0);
+        }
+        double[] a = g.a;
+        double[] b = g.b;
+        for (int i = 0; i < n; i++) {
+            double c = capacity[i];
+            if (fixed[i]) {
+                a[i] = old[i];
+                b[i] = 0.0;
+            } else if (g.upstreams[i].length == 0) {
+                a[i] = c > 0.0 ? old[i] + source[i] / c : old[i];
+                b[i] = 0.0;
+            } else if (c > 0.0 || inflow[i] > 0.0) {
+                double in = inflow[i];
+                double explicit = (1.0 - theta) * in * (g.mix(i, old) - old[i]);
+                double denom = c + theta * in;
+                a[i] = (c * old[i] + explicit + source[i]) / denom;
+                b[i] = theta * in / denom;
+            } else {
+                a[i] = old[i];
+                b[i] = 0.0;
+            }
+        }
+        double[] next = g.solveByCut(a, b);
+        if (next == null) next = g.solveDirect(a, b);
+        if (next == null) return;
+        for (int i = 0; i < n; i++) {
+            value[i] = next[i];
+            incoming[i] = g.upstreams[i].length == 0 ? next[i] : g.mix(i, next);
+        }
+    }
+
+    /** Segment indices upstream of each segment, by the rule Graph.of uses (for code that needs the loop's shape). */
+    public static int[][] upstreamIndices(Plan plan, List<LoopSegment> segments) {
+        return plan.graphFor(segments).upstreams;
+    }
+
+    /**
      * How implicit the step is: 1/2 (trapezoidal, second order) when no segment takes in more than twice its volume
      * in the step, otherwise just enough to keep every new temperature a weighted average of old ones (no
      * overshoot), up to 1 (backward Euler) at very high flow. One value for the whole loop, as exact conservation
