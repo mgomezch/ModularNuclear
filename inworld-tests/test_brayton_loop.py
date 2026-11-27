@@ -30,7 +30,8 @@ from tools.inworld_test_driver import InWorldTestDriver
 TAG = "brayton_loop"
 Y = 5
 PIPE = LB.pipe_id("STEEL", "NORMAL")
-PUMP = (0, Y, 0)
+Z0 = 0  # the demo world builds it further south
+PUMP = (0, Y, Z0)
 COMP_CX, RAD_CX, PHE1_X, EXP_CX, PHE2_X = 8, 14, 20, 28, 34
 PHE1_LEN, PHE2_LEN = 11, 5
 FLUID = "helium"
@@ -39,46 +40,44 @@ OUTPUT = REPO_ROOT / "output" / "brayton_loop.json"
 
 
 def build_phe(h, x: int, sheetmetal: str, length: int, energy_tier: str = "EV"):
-    """A 3-high PHE at (x, Y, 0) along +z, switched on, with an energy hatch; returns its centre layer and back z."""
-    h.build_multiblock("phe", x, Y, 0, sheetmetal, 3, length)
-    cy, back = Y + 1, length - 1
+    """A 3-high PHE at (x, Y, Z0) along +z, switched on, with an energy hatch; returns its centre layer and back z."""
+    h.build_multiblock("phe", x, Y, Z0, sheetmetal, 3, length)
+    cy, back = Y + 1, Z0 + length - 1
     h.set_gt_machine(x + 1, Y, back, 40 + LB.TIERS.index(energy_tier), 3)
     h.set_cover(x + 1, Y, back, 3, "Cover_Wireless_Energy_Debug")
     h.charge_energy(x + 1, Y, back, 10_000_000_000)
-    h.fix_maintenance(x + 1, cy, 0)
+    h.fix_maintenance(x + 1, cy, Z0)
     return cy, back
 
 
 def build(h: HarnessClient):
-    h.clear_area(-10, Y - 1, -10, 45, Y + 12, 20)
-    h.fill_area(-8, Y - 1, -8, 44, Y - 1, 18, "stone", 0)
+    h.clear_area(-10, Y - 1, Z0 - 10, 45, Y + 12, Z0 + 20)
+    h.fill_area(-8, Y - 1, Z0 - 8, 44, Y - 1, Z0 + 18, "stone", 0)
     pump = LB.build_pump(h, *PUMP, "STEEL", 512, FLUID, 200_000)
-    comp = G.build_compressor(h, COMP_CX, Y, 0, 3)
-    rad = G.build_radiator(h, RAD_CX, Y, 0, 5)
-    exp = G.build_expander(h, EXP_CX, Y, 0, 3, dynamo_tier="IV")
+    comp = G.build_compressor(h, COMP_CX, Y, Z0, 3)
+    rad = G.build_radiator(h, RAD_CX, Y, Z0, 5)
+    exp = G.build_expander(h, EXP_CX, Y, Z0, 3, dynamo_tier="IV")
     # PHE 1: the recuperator, its second pair of high-pressure hatches in place of its secondary hatches
     cy, back1 = build_phe(h, PHE1_X, "blackplutonium", PHE1_LEN)
-    S.set_fresh_gt_machine(h, PHE1_X + 2, cy, 0, S.ID_PRESSURIZED_INPUT, 5)
+    S.set_fresh_gt_machine(h, PHE1_X + 2, cy, Z0, S.ID_PRESSURIZED_INPUT, 5)
     S.set_fresh_gt_machine(h, PHE1_X + 2, cy, back1, S.ID_PRESSURIZED_OUTPUT, 3)
     # PHE 2: the liquefier, nitrogen gas from a debug tank, its liquid into an output hatch
     cy, back2 = build_phe(h, PHE2_X, "osmium", PHE2_LEN)
-    h.set_gt_machine(PHE2_X + 3, cy, 0, S.ID_DEBUG_TANK, 4)
-    h.configure_debug_tank(PHE2_X + 3, cy, 0, "nitrogen", True)
+    h.set_gt_machine(PHE2_X + 3, cy, Z0, S.ID_DEBUG_TANK, 4)
+    h.configure_debug_tank(PHE2_X + 3, cy, Z0, "nitrogen", True)
     S.set_fresh_gt_machine(h, PHE2_X + 2, cy, back2, ID_OUTPUT_HATCH_HV, 5)
-    boxes = [[0, Y, 0, 2, Y + 6, 2], comp["box"], rad["box"], exp["box"],
-             [PHE1_X, Y, 0, PHE1_X + 2, Y + 2, back1], [PHE2_X, Y, 0, PHE2_X + 3, Y + 2, back2]]
+    boxes = [[0, Y, Z0, 2, Y + 6, Z0 + 2], comp["box"], rad["box"], exp["box"],
+             [PHE1_X, Y, Z0, PHE1_X + 2, Y + 2, back1], [PHE2_X, Y, Z0, PHE2_X + 3, Y + 2, back2]]
     legs = [
         (pump["outlet"], comp["inlet"], "WEST", "SOUTH"),
         (comp["outlet"], rad["inlet"], "NORTH", "SOUTH"),
-        (rad["outlet"], (PHE1_X - 1, cy, 0), "NORTH", "EAST"),
+        (rad["outlet"], (PHE1_X - 1, cy, Z0), "NORTH", "EAST"),
         ((PHE1_X, cy, back1 + 1), exp["inlet"], "NORTH", "SOUTH"),
-        (exp["outlet"], (PHE2_X - 1, cy, 0), "NORTH", "EAST"),
-        ((PHE2_X, cy, back2 + 1), (PHE1_X + 3, cy, 0), "NORTH", "WEST"),
+        (exp["outlet"], (PHE2_X - 1, cy, Z0), "NORTH", "EAST"),
+        ((PHE2_X, cy, back2 + 1), (PHE1_X + 3, cy, Z0), "NORTH", "WEST"),
         ((PHE1_X + 2, cy, back1 + 1), pump["inlet"], "NORTH", "EAST"),
     ]
-    for start, end, sc, ec in legs:
-        r = G.route(h, PIPE, start, end, sc, ec, boxes, Y + 1)
-        print(f"    pipe {start} -> {end}: {r.get('length')} blocks")
+    G.route_legs(h, PIPE, legs, boxes, Y + 1)
     print("[+] Built pump, compressor, radiator, recuperator, expander, liquefier")
 
 
@@ -89,10 +88,10 @@ def zone_line(status: str):
 
 def test(h: HarnessClient):
     ctrl = (PUMP[0] + 1, PUMP[1], PUMP[2])
-    comp_c, rad_c, exp_c = (COMP_CX, Y, 0), (RAD_CX, Y, 0), (EXP_CX, Y, 0)
-    phe1_c, phe2_c = (PHE1_X + 1, Y + 1, 0), (PHE2_X + 1, Y + 1, 0)
-    out_hatch = (PHE2_X + 2, Y + 1, PHE2_LEN - 1)
-    h.stand(18, Y + 10, -14, 0.0, 35.0)
+    comp_c, rad_c, exp_c = (COMP_CX, Y, Z0), (RAD_CX, Y, Z0), (EXP_CX, Y, Z0)
+    phe1_c, phe2_c = (PHE1_X + 1, Y + 1, Z0), (PHE2_X + 1, Y + 1, Z0)
+    out_hatch = (PHE2_X + 2, Y + 1, Z0 + PHE2_LEN - 1)
+    h.stand(18, Y + 10, Z0 - 14, 0.0, 35.0)
     time.sleep(1.0)
     for c in (comp_c, rad_c, exp_c, phe1_c, phe2_c, ctrl):
         h.recheck(*c)

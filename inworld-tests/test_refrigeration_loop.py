@@ -32,7 +32,7 @@ PUMP = (0, Y, 0)
 VALVE_CX, BATH_X0, COMP_CX, RAD_CX = 8, 13, 22, 28
 COMP_LEN, RAD_LEN = 5, 9
 FLUID = "r134a"
-INGOTS = [("ore:ingotHotTungstenSteel", 16, 0) for _ in range(6)]
+INGOTS = [("ore:ingotHotTungstenSteel", 1, 0) for _ in range(6)]
 OUTPUT = REPO_ROOT / "output" / "refrigeration_loop.json"
 
 
@@ -52,9 +52,7 @@ def build(h: HarnessClient):
         (comp["outlet"], rad["inlet"], "NORTH", "SOUTH"),
         (rad["outlet"], pump["inlet"], "NORTH", "EAST"),
     ]
-    for start, end, sc, ec in legs:
-        r = G.route(h, PIPE, start, end, sc, ec, avoid, Y + 1)
-        print(f"    pipe {start} -> {end}: {r.get('length')} blocks")
+    G.route_legs(h, PIPE, legs, avoid, Y + 1)
     print("[+] Built pump, valve, bath, compressor, radiator")
 
 
