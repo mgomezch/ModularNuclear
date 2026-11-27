@@ -42,7 +42,7 @@ final class CoolantPumpGasLoop {
     private CoolantPumpGasLoop() {}
 
     /** Liquid fraction (condensing gases) and charge pressure in bar (permanent gases) the screwdriver cycles. */
-    static final double[] LIQUID_FRACTIONS = { 0.1, 0.05, 0.2, 0.3, 0.02 };
+    public static final double[] LIQUID_FRACTIONS = { 0.1, 0.05, 0.2, 0.3, 0.02 };
     static final double[] CHARGE_PRESSURES_BAR = { 10.0, 5.0, 20.0, 40.0, 2.0 };
 
     /**
@@ -86,7 +86,8 @@ final class CoolantPumpGasLoop {
     }
 
     static double liquidFraction(CoolantPumpCore p) {
-        return LIQUID_FRACTIONS[Math.floorMod(p.mGasChargeSetting, LIQUID_FRACTIONS.length)];
+        double[] fractions = p.host.getPumpLimits().liquidFractions;
+        return fractions[Math.floorMod(p.mGasChargeSetting, fractions.length)];
     }
 
     static double chargePressureBar(CoolantPumpCore p) {

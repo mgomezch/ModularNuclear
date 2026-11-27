@@ -179,7 +179,12 @@ public class MTECompactLoopPump extends MTETieredMachineBlock implements ICoolan
     public PumpLimits getPumpLimits() {
         if (mLimits == null) {
             CompactTier t = tier();
-            mLimits = new PumpLimits(t.maxLoopVolumeLiters, t.maxPressureBar, t.fillRateFactor, true);
+            mLimits = new PumpLimits(
+                t.maxLoopVolumeLiters,
+                t.maxPressureBar,
+                t.fillRateFactor,
+                true,
+                CompactTier.LIQUID_FRACTIONS);
         }
         return mLimits;
     }

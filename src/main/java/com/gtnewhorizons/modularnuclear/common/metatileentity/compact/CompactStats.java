@@ -19,7 +19,7 @@ public final class CompactStats {
     private CompactStats() {}
 
     /** A loop of each tier against the Vacuum Freezer, in EU per ingot: CompactLoopBalanceTest's figures. */
-    private static final String[] AGAINST_FREEZER = { "1.1", "1.8", "2.2", "2.8", "3.0" };
+    private static final String[] AGAINST_FREEZER = { "1.0", "1.7", "2.3", "2.8", "2.8" };
 
     public static List<String[]> rows(Kind kind, int tier) {
         CompactTier t = CompactTier.of(tier);

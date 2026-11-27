@@ -1013,7 +1013,7 @@ Exactly one maintenance hatch (any type) and exactly one energy hatch (single- o
 
 ### 9.10 Gas loops (refrigeration)
 
-A loop whose pump's reservoir holds a **gas** is a gas loop: a refrigeration loop that cools a Coolant Bath, a PHE or another loop below ambient, rejecting the heat to air or to another loop.  Gas loops use the same pump, Railcraft reservoir, high-pressure pipes, manifolds, instruments and hatches as liquid loops, and four machines of their own (§9.11).  They come in two kinds:
+A loop whose pump's reservoir holds a **gas** is a gas loop: a refrigeration loop that cools a Coolant Bath, a PHE or another loop below ambient, rejecting the heat to air or to another loop.  Gas loops use the same pump, Railcraft reservoir, high-pressure pipes, manifolds, instruments and hatches as liquid loops, and four machines of their own (§9.11).  One-block versions of them, with a pump of their own, start at MV (§9.12).  They come in two kinds:
 
 - **Vapour compression**, with a condensing gas: R-134a, ammonia, propane or CO₂.  Compressor → condenser (radiator, or a PHE into another loop) → expansion valve → evaporator (Coolant Bath, PHE) → compressor.  The valve lets the high side's liquid down to the low side, where it flashes into a cold two-phase mix that boils in the evaporator at the low side's saturation temperature.
 - **Reverse Brayton**, with a permanent gas: helium, nitrogen or argon.  Compressor → aftercooler (radiator) → recuperator (a PHE joining two passes of the loop) → turbo-expander → cold load → recuperator → compressor.  The expander takes work out of the gas, which cools it; a gas throttled through a valve without a phase change keeps its temperature, so a Brayton loop needs the expander.
@@ -1067,6 +1067,55 @@ The four machines share one shape: a 3×3 cross-section 3 or more blocks long.  
 - **Liquefaction.** On a gas loop colder than a cryogen's boiling point less the approach temperature, a PHE with that cryogen's gas in its secondary input (nitrogen, oxygen, air or helium) condenses it into its liquid.  A litre takes up as much heat condensing as it gives off boiling (§9.7), so a round trip through two PHEs gains nothing.
 
 **R-134a.** R-134a is made from vinyl chloride: in the Large Chemical Reactor with chlorine to trichloroethylene, then in the Chemical Plant with hydrogen fluoride over a Solid Acid Catalyst to HCFC-133a (chlorotrifluoroethane), and again with hydrogen fluoride over a Brown Metal Catalyst to R-134a.  The hydrochloric acid each step gives off goes back to chlorine.
+
+### 9.12 Compact loop machines
+
+The compact loop machines are one-block versions of the gas loop's machines, in the five tiers from MV to LuV.  They make a small refrigeration loop possible from MV, two tiers before the high-pressure hatches a multiblock pump needs, and stay much weaker than the multiblocks at every tier.  A compact loop cools hot ingots at about the Vacuum Freezer's EU and pace at MV, where the alternative is a Chemical Bath at two to six times the freezer's, rising to nearly three times the freezer's EU efficiency at IV.
+
+**Shape.** A compact machine has a front, which faces whoever places it.  The loop runs straight through it across the front, by default from the left of the front to the right; the two sides show a pipe going in and a pipe coming out, and coolant pipes connect only there.  A screwdriver turns the loop's direction through the four the front leaves free: left to right, right to left, bottom to top, top to bottom.  Power enters through any other side but the front.  There are no hatches, no maintenance, no structure and no GUI: a right click, the scanner and Waila read a machine's state.  Each machine is assembled at its own tier from that tier's hull and components.
+
+**Compact Loop Pump.** Owns the loop as the multiblock pump does (§9.10): it finds the loop, keeps its chunks loaded, charges it and lets its compressors run.  It differs in these ways:
+
+- Its reservoir is a stack of **Iron Tanks** standing on it, of any height but all of one kind.  The stack's kind does not have to match the pipes, which may be of any one material.
+- It runs **gas loops only**.
+- It runs loops up to its tier's volume of pipes and machines, and the pipes on its two sides burst at its own rating if that is lower than theirs.
+- It fills and drains at a fraction of a multiblock pump's rate, and draws a quarter of an ampere of its tier while it does.
+- Its charge settings are half the multiblock's by default: 5, 3, 10, 20 and 2% liquid (a screwdriver cycles them; sneak to turn the loop's direction instead).  A loop runs on the smaller charge at about a tenth less efficiency.
+- **Stopped** (soft mallet, machine controller cover), it stops the compressors, waits for the loop to come to rest and takes the whole charge back into its tanks.  Stop it before rebuilding its loop or moving it.
+
+**Compact Gas Compressor.** Works with one ampere of its tier.  Three things set it apart from the multiblock compressor.  Its drive gives its shaft only a small share $\eta_d$ of its EU.  It has a **built-in pressure ratio** $r_b$: it compresses its gas at least that far whatever the loop's pressures, the excess going into the gas as heat, so a warm evaporator does not make the loop cheap to run.  And past $r_b$ it slows, stopping at $1.5\,r_b$, so a lightly loaded loop idles instead of pumping its evaporator down to a vacuum.  Liquid at its suction stays in its accumulator: it wears nothing.  The high-pressure cutout of §9.11 applies.
+
+**Compact Expansion Valve.** Thermostatic, holding 5 K of superheat; no power, no modes.
+
+**Compact Turbo-Expander.** For Brayton loops.  Its work comes out of its back as EU, up to one ampere of its tier.
+
+**Compact Radiator.** Its fan speeds up with the loop's temperature above ambient, reaching full speed (an eighth of an ampere of its tier) 6 K above it; a lightly loaded loop's fan idles at a tenth.
+
+**Compact Coolant Bath.** Cools hot ingots, a few at a time, on a gas loop.  A right click with hot ingots puts them in; a right click with anything else takes the cooled ingots out; pipes, hoppers and conveyors put in and take out on any side but the front.  An ingot holds the same heat as in the multiblock Coolant Bath (§9.7), so compact and multiblock machines mix freely on one loop.  Each ingot takes about one and a half times the Vacuum Freezer's time for it.
+
+**Compact Heat Exchanger.** Liquefies nitrogen, oxygen, air or helium against a loop colder than the cryogen's boiling point less the approach temperature, as a PHE does (§9.11): it takes the gas in and gives the liquid out on any side but the front and the loop's two.  That takes a Brayton loop with a Compact Turbo-Expander.
+
+| | MV | HV | EV | IV | LuV |
+| :-- | --: | --: | --: | --: | --: |
+| Works with (EU/t) | 120 | 480 | 1,920 | 7,680 | 30,720 |
+| Bursts above (bar) | 16 | 32 | 64 | 128 | 256 |
+| Holds of the loop's gas (L) | 250 | 1,667 | 8,444 | 37,333 | 163,556 |
+| Pump: largest loop (L) | 2,000 | 13,333 | 67,556 | 298,667 | 1,308,444 |
+| Pump: fill rate | 10% | 15% | 20% | 30% | 40% |
+| Compressor: drive efficiency $\eta_d$ | 9% | 15% | 19% | 21% | 23% |
+| Compressor: shaft power | 6.1 MW | 40.7 MW | 206 MW | 911 MW | 3.99 GW |
+| Compressor: isentropic efficiency | 60% | 64% | 68% | 71% | 74% |
+| Compressor: built-in ratio $r_b$ | 2.4 | 2.3 | 2.2 | 2.1 | 2.0 |
+| Expander: isentropic efficiency | 55% | 62% | 68% | 73% | 77% |
+| Radiator: conductance (MW/K) | 2.1 | 9.6 | 43 | 192 | 845 |
+| Radiator: fan at full speed (EU/t) | 15 | 60 | 240 | 960 | 3,840 |
+| Bath: ingots at a time | 2 | 3 | 4 | 6 | 8 |
+| Loop against the Vacuum Freezer, EU per ingot | 1.0× | 1.7× | 2.3× | 2.8× | 2.8× |
+| Loop against the Vacuum Freezer, pace | 1.0× | 1.6× | 1.8× | 2.2× | 3.5× |
+
+The last two rows are for a loop of one compressor, radiator, valve and bath on an ingot the freezer cools at that tier's voltage (Silicon Solar Grade, Titanium, Tungstensteel, Naquadah), in air at 20 °C.  A loop on ingots far below its tier is quick but wasteful.
+
+A higher tier moves more gas, so its machines hold more of it, and its loop takes a far larger charge: about 20,000 L of R-134a for an MV loop, one Iron Tank's worth, but hundreds of thousands at EV and millions at IV.  The machines' pressure ratings choose the gas as well: R-134a condenses near 9 bar in mild air and suits MV, ammonia and propane need HV's 32 bar, and CO₂ needs IV.  In a hot biome an MV loop on R-134a runs into its cutout.  By IV the multiblocks are the better machines.
 
 ---
 

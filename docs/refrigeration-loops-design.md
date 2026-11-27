@@ -169,6 +169,24 @@ same rate times its generator efficiency.  The default follows the manual's exis
 28,250 J of turbine heat), calibrated after the in-world test so that an HV R-134a loop costs well below the
 Vacuum Freezer's EU for ingots, and a Brayton loop more than the freezer for liquid nitrogen.
 
+## Compact machines
+
+One-block versions of the gas loop's machines, MV to LuV, with a pump of their own: Note [Compact loop machines]
+in `MTECompactLoopMachine.java` has the design, and these Notes its parts.
+
+- Note [Pump cores and their hosts] (`CoolantPumpCore.java`): the loop a pump owns is a `CoolantPumpCore`, which
+  the multiblock `MTECoolantPump` and the one-block `MTECompactLoopPump` both host.  The compact pump has no
+  impeller, so it runs gas loops only.
+- Note [The compact pump's tanks] (`IronTankReservoir.java`): a stack of Iron Tanks of one kind, reached through
+  the bottom tank's fluid handler.
+- Note [The compact bath] and Note [The compact heat exchanger].
+- Note [Compact loop machine recipes] (`CompactLoopRecipes.java`).
+
+What holds a compact loop to one to three times the Vacuum Freezer's EU efficiency is the compressor: a drive
+efficiency of 9% (MV) to 23% (LuV), and a built-in pressure ratio that bounds the loop's coefficient of
+performance.  An ingot holds the same heat in either kind of bath.  A loop's flow is bounded by the gas on its low
+side, so a tier's machines hold as much gas as its flow needs, and its loop's charge grows with it.
+
 ## Tests
 
 - Unit: gas properties against reference points, state round trips, isentropic compression, the valve's flash,
@@ -178,3 +196,6 @@ Vacuum Freezer's EU for ingots, and a Brayton loop more than the freezer for liq
 - In-world, on a hermetic dev instance: an HV R-134a loop cooling hot ingots in a Coolant Bath, and a helium Brayton
   loop liquefying nitrogen in a PHE, each checked for state, pressures, temperatures and EU.
 - A demonstration world on the latest `-test` instance with both loops running.
+- Compact machines: `CompactLoopBalanceTest` runs a loop of each tier to steady state on hot ingots and compares it
+  with the Vacuum Freezer; `inworld-tests/test_compact_refrigeration_loop.py` builds an MV loop in game, cools hot
+  Kanthal and has the stopped pump take its charge back.

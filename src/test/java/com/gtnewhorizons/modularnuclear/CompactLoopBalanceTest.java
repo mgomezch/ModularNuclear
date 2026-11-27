@@ -32,6 +32,9 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.Coolant
 public class CompactLoopBalanceTest {
 
     static final double C = 273.15, DT = 0.05;
+    static double LIQUID_FRACTION = System.getenv("COMPACT_LIQUID") != null
+        ? Double.parseDouble(System.getenv("COMPACT_LIQUID"))
+        : CompactTier.LIQUID_FRACTIONS[0];
     static boolean DEBUG = System.getenv("COMPACT_DEBUG") != null;
     static final double JOULES_PER_EU = GasMachineParts.SHAFT_JOULES_PER_EU;
 
@@ -107,8 +110,8 @@ public class CompactLoopBalanceTest {
 
                 @Override
                 public void computeStage(Context c) {
-                    double fullEu = model.fullSpeedPower(c) / (t.shaftJoulesPerEu() * 20.0);
-                    model.compute(c, (fullEu > 0.0 ? Math.min(1.0, t.euPerTick / fullEu) : 1.0) * model.unloading(c));
+                    double speed = model.speedForPower(c, t.euPerTick * t.shaftJoulesPerEu() * 20.0);
+                    model.compute(c, speed * model.unloading(c));
                     work[0] += c.shaftPowerWatts * c.dt;
                 }
 
@@ -127,7 +130,9 @@ public class CompactLoopBalanceTest {
                 valve.compute(c, opening[0]);
             });
         double ambient = 20 + C;
-        e.equilibrate(GasLoopEngine.requiredChargeKg(gas, e.getTotalVolumeM3(), ambient, 0.1, 10e5), ambient);
+        e.equilibrate(
+            GasLoopEngine.requiredChargeKg(gas, e.getTotalVolumeM3(), ambient, LIQUID_FRACTION, 10e5),
+            ambient);
         e.setPumpPowered(true);
         CoolantBathSlot[] slots = new CoolantBathSlot[t.bathSlots];
         Result r = new Result();
@@ -195,7 +200,7 @@ public class CompactLoopBalanceTest {
 
     @Test
     public void eachTierBeatsTheFreezerByItsShare() {
-        double[] least = { 1.1, 1.7, 2.1, 2.4, 2.6 }, most = { 1.6, 2.3, 2.7, 3.1, 3.4 };
+        double[] least = { 0.85, 1.45, 1.95, 2.4, 2.4 }, most = { 1.3, 2.0, 2.6, 3.2, 3.3 };
         StringBuilder report = new StringBuilder();
         boolean ok = true;
         for (CompactTier t : CompactTier.all()) {

@@ -72,16 +72,18 @@ An ingot holds the same heat in a compact bath as in a multiblock one, so the ma
 Balance.  CompactLoopBalanceTest runs a loop of each tier (compressor, radiator in air at 20 °C, valve, bath kept
 full) and compares what it spends per ingot with the Vacuum Freezer's recipe for that ingot:
 
-    tier  ingot          EU efficiency   pace     against
-    MV    Silicon SG     1.1 x           1.1 x    the freezer; 2.3 x the MV Chemical Bath's EU and pace
-    HV    Titanium       1.8 x           1.7 x    the freezer
-    EV    Tungstensteel  2.2 x           1.8 x
-    IV    Naquadah       2.8 x           2.4 x
-    LuV   Naquadah       3.0 x           3.5 x
+    tier  ingot          EU efficiency   pace
+    MV    Silicon SG     1.0 x           1.0 x
+    HV    Titanium       1.7 x           1.6 x
+    EV    Tungstensteel  2.3 x           1.8 x
+    IV    Naquadah       2.8 x           2.2 x
+    LuV   Naquadah       2.8 x           3.5 x
 
-At MV, where there is no freezer and the Chemical Bath takes two to six times its EU, that is two to seven times
-the bath.  A loop on ingots far below its tier is quick but wasteful: a LuV loop cools Kanthal at five times the
-freezer's pace for 0.6 times its efficiency.
+At MV there is no freezer: the alternative is the Chemical Bath, at twice the freezer's EU and time for Silicon SG
+and five to six times for Kanthal, Silicon and Tantalum, so an MV loop is two to six times as good as that.  A
+loop on ingots far below its tier is quick but wasteful: a LuV loop cools Kanthal at five times the freezer's pace
+for 0.8 times its efficiency.  The figures are for a pump's default charge (CompactTier.LIQUID_FRACTIONS); with
+twice the charge a loop does about a tenth better.
 
   (W1) Gas only.  A compact pump has no impeller (ICoolantPumpHost.getImpeller is null), so it charges and owns
        gas loops only; the liquid-only multiblocks (fluid heater, degasser) have no compact version.

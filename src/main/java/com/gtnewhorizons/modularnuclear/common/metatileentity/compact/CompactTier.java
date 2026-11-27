@@ -84,6 +84,13 @@ public final class CompactTier {
         return 28_250.0 * driveEfficiency;
     }
 
+    /**
+     * The charge settings of a compact pump: the shares of a condensing gas loop's volume that are liquid at ambient.
+     * Half a multiblock pump's by default: a compact machine holds a great deal of gas for its tier's flow, and a
+     * loop runs on less at a tenth or so less efficiency.
+     */
+    public static final double[] LIQUID_FRACTIONS = { 0.05, 0.03, 0.1, 0.2, 0.02 };
+
     /** The loop's temperature above ambient at which a radiator's fan reaches full speed, K. */
     public static final double RADIATOR_FULL_FAN_K = 6.0;
     /** The slowest a radiator's fan turns while the loop flows, as a share of full speed. */

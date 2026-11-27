@@ -91,6 +91,20 @@ public final class GasStageModels {
             c.shaftPowerWatts = flow * w;
         }
 
+        /**
+         * The speed at which the compressor's shaft takes no more than maxWatts: its power at full speed without the
+         * engine's limit on its flow (c.maxMassFlow), which compute applies afterwards. Sized from fullSpeedPower,
+         * which has that limit in it, a compressor the engine was holding back ran over its power when the limit
+         * rose.
+         */
+        public double speedForPower(GasPressureStage.Context c, double maxWatts) {
+            if (!c.loopRunning) return 1.0;
+            double ratio = c.pressureOut / c.pressureIn;
+            double volume = Math.min(displacement * volumetricEfficiency(c.gas, ratio), c.maxVolumetricFlow);
+            double watts = volume * suctionDensity(c) * specificWork(c);
+            return watts > maxWatts ? Math.max(0.0, maxWatts / watts) : 1.0;
+        }
+
         /** Shaft power (W) at full speed in this context. */
         public double fullSpeedPower(GasPressureStage.Context c) {
             if (!c.loopRunning) return 0.0;

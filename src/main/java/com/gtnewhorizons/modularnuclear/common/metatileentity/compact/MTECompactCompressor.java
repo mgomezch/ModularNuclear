@@ -22,18 +22,12 @@ import gregtech.api.render.TextureFactory;
  */
 public class MTECompactCompressor extends MTECompactLoopMachine implements GasPressureStage {
 
-    /** Ticks of liquid at the suction before the compressor trips, and how long it then rests. */
-    static final int SLUGGING_TRIP_TICKS = 100;
-    static final int TRIP_REST_TICKS = 200;
-
     private double mSpeed = 0.0;
     private double mLastShaftWatts = 0.0;
     private double mLastMassFlow = 0.0;
     private double mLastSuctionBar = 0.0, mLastDischargeBar = 0.0;
     private long mLastEuPerTick = 0L;
     private double mEuDebt = 0.0;
-    private int mSluggingTicks = 0;
-    private int mTripTicks = 0;
 
     public MTECompactCompressor(int aID, String aName, String aNameRegional, int aTier) {
         super(aID, aName, aNameRegional, aTier, 0);
@@ -82,24 +76,22 @@ public class MTECompactCompressor extends MTECompactLoopMachine implements GasPr
             stop(c, c.loopRunning ? "Disabled" : "Waiting for the loop's pump");
             return;
         }
-        if (mTripTicks > 0) {
-            mTripTicks--;
-            stop(c, "Tripped on liquid at its suction: resting");
-            return;
-        }
         CompactTier t = tier();
         GasStageModels.Compressor m = model(t);
-        double fullEu = m.fullSpeedPower(c) / (t.shaftJoulesPerEu() * 20.0);
-        double speed = (fullEu > 0.0 ? Math.min(1.0, t.euPerTick / fullEu) : 1.0) * m.unloading(c);
-        // Never more than the machine holds
-        double affordable = storedEnergy();
-        if (fullEu * speed > affordable) speed = fullEu > 0.0 ? Math.max(0.0, affordable / fullEu) : speed;
-        if (speed <= 0.0 && fullEu > 0.0) {
-            stop(c, storedEnergy() <= 0L ? "Not enough power" : "Idle: the loop is at its pressure ratio");
+        double wattsPerEu = t.shaftJoulesPerEu() * 20.0;
+        // No more than its tier's EU, nor than the machine holds
+        double budgetEu = Math.min(t.euPerTick, storedEnergy());
+        if (budgetEu <= 0.0) {
+            stop(c, "Not enough power");
+            return;
+        }
+        double speed = m.speedForPower(c, budgetEu * wattsPerEu) * m.unloading(c);
+        if (speed <= 0.0) {
+            stop(c, "Idle: the loop is at its pressure ratio");
             return;
         }
         m.compute(c, speed);
-        double eu = c.shaftPowerWatts / (t.shaftJoulesPerEu() * 20.0) + mEuDebt;
+        double eu = c.shaftPowerWatts / wattsPerEu + mEuDebt;
         long whole = (long) Math.floor(eu);
         mEuDebt = eu - whole;
         if (whole > 0 && !drainEnergy(whole)) {
@@ -119,14 +111,9 @@ public class MTECompactCompressor extends MTECompactLoopMachine implements GasPr
         if (cutout) {
             mStatus = String.format("High-pressure cutout at %.1f bar", c.pressureOut / 1e5);
         } else if (c.in.quality < 0.9 && c.massFlow > 0.0) {
-            // Liquid reaching the suction: it trips rather than wear, having no maintenance
-            if (++mSluggingTicks >= SLUGGING_TRIP_TICKS) {
-                mSluggingTicks = 0;
-                mTripTicks = TRIP_REST_TICKS;
-            }
-            mStatus = String.format("Liquid slugging (%.0f%% vapour at suction)", c.in.quality * 100.0);
+            // Liquid at the suction stays in its accumulator: it draws the vapour's worth and wears nothing
+            mStatus = String.format("Running on a wet suction (%.0f%% vapour)", c.in.quality * 100.0);
         } else {
-            mSluggingTicks = 0;
             mStatus = speed < 0.999 ? String.format("Running at %.0f%% speed", speed * 100.0) : "Running";
         }
     }

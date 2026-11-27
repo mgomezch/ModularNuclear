@@ -155,14 +155,11 @@ public class MTEGasCompressor extends MTEInlineLoopMachine<MTEGasCompressor> imp
         }
         checkMaintenance();
         GasStageModels.Compressor m = model();
-        double full = m.fullSpeedPower(c);
         long maxEu = maxInputPerTick();
-        double fullEu = full / (GasMachineParts.SHAFT_JOULES_PER_EU * 20.0);
-        double speed = fullEu > 0.0 ? Math.min(1.0, maxEu / fullEu) : 1.0;
-        // Never more than the energy hatches hold
-        double affordable = storedEnergy() + 0.0;
-        if (fullEu * speed > affordable) speed = fullEu > 0.0 ? Math.max(0.0, affordable / fullEu) : speed;
-        if (speed <= 0.0 && fullEu > 0.0) {
+        // No more than its energy hatches take in, nor than they hold
+        double budgetEu = Math.min(maxEu, storedEnergy());
+        double speed = m.speedForPower(c, budgetEu * GasMachineParts.SHAFT_JOULES_PER_EU * 20.0);
+        if (speed <= 0.0) {
             stop(c, "Not enough power");
             return;
         }
