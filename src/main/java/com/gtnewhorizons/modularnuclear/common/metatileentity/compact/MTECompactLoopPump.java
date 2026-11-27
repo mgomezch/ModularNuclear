@@ -434,7 +434,7 @@ public class MTECompactLoopPump extends MTETieredMachineBlock implements ICoolan
 
     @Override
     public void loadNBTData(NBTTagCompound nbt) {
-        mSuctionSide = ForgeDirection.getOrientation(nbt.getByte("mSuctionSide"));
+        if (nbt.hasKey("mSuctionSide")) mSuctionSide = ForgeDirection.getOrientation(nbt.getByte("mSuctionSide"));
         mCore.loadNBTData(nbt);
     }
 }

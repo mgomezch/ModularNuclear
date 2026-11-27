@@ -2360,10 +2360,23 @@ public class LoopGraphCrawler {
             int ny = y + side.offsetY;
             int nz = z + side.offsetZ;
             if (nx == targetX && ny == targetY && nz == targetZ) {
-                return true;
+                return takesPipeOn(world, nx, ny, nz, side.getOpposite());
             }
         }
         return false;
+    }
+
+    /**
+     * Whether the loop block at a position takes a pipe on this face of it. A hatch's block takes one wherever a
+     * pipe reaches it; a one-block machine only on the sides its loop runs through, so a pipe passing its front or
+     * its top is not joined to it.
+     */
+    private static boolean takesPipeOn(World world, int x, int y, int z, ForgeDirection face) {
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof ILoopPortSides ports) {
+            return ports.isLoopPortSide(face);
+        }
+        return true;
     }
 
     public static ForgeDirection findNextPipeDirection(World world, BaseMetaPipeEntity bmpe, MTEFluidPipe pipe,

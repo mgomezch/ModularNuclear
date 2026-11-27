@@ -459,6 +459,7 @@ public abstract class MTECompactLoopMachine extends MTETieredMachineBlock implem
 
     @Override
     public void loadNBTData(NBTTagCompound nbt) {
-        mInletSide = ForgeDirection.getOrientation(nbt.getByte("mInletSide"));
+        // A machine never saved has no side yet: getLoopInletSide gives it its default
+        if (nbt.hasKey("mInletSide")) mInletSide = ForgeDirection.getOrientation(nbt.getByte("mInletSide"));
     }
 }
