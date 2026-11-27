@@ -106,10 +106,13 @@ public class MTECompactCompressor extends MTECompactLoopMachine implements GasPr
         double uncapped = Math.min(m.displacement * speed, c.maxVolumetricFlow)
             * GasStageModels.Compressor.suctionDensity(c);
         // Held back by the engine's cutout (wrinkle (W9) of Note [Gas loop pressure zones]) near its rating
-        boolean cutout = c.maxMassFlow < 0.95 * uncapped
-            && c.pressureOut > 0.5 * GasLoopEngine.CUTOUT_FRACTION * c.downstreamMaxPressure;
+        boolean held = c.maxMassFlow < 0.95 * uncapped;
+        boolean cutout = held && c.pressureOut > 0.9 * GasLoopEngine.CUTOUT_FRACTION * c.downstreamMaxPressure;
         if (cutout) {
             mStatus = String.format("High-pressure cutout at %.1f bar", c.pressureOut / 1e5);
+        } else if (held) {
+            // The engine lets a stage take half its upstream zone's gas a tick (Note [Gas loop pressure zones], (W2))
+            mStatus = "Running: the gas on its low side limits its flow";
         } else if (c.in.quality < 0.9 && c.massFlow > 0.0) {
             // Liquid at the suction stays in its accumulator: it draws the vapour's worth and wears nothing
             mStatus = String.format("Running on a wet suction (%.0f%% vapour)", c.in.quality * 100.0);
@@ -134,7 +137,7 @@ public class MTECompactCompressor extends MTECompactLoopMachine implements GasPr
         CompactTier t = tier();
         l.add(
             String.format(
-                "Suction %.2f bar -> discharge %.2f bar (built-in ratio %.1f)",
+                "%.2f bar -> %.2f bar (built-in ratio %.1f)",
                 mLastSuctionBar,
                 mLastDischargeBar,
                 t.builtInRatio));

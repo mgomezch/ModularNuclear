@@ -15,6 +15,10 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.cleanroommc.modularui.factory.PosGuiData;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICompactLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
@@ -22,6 +26,8 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.ICoolantPumpHost;
+import com.gtnewhorizons.modularnuclear.common.gui.CompactLoopMachineGui;
+import com.gtnewhorizons.modularnuclear.common.gui.IReadoutLines;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 
 import gregtech.api.enums.GTValues;
@@ -87,11 +93,12 @@ twice the charge a loop does about a tenth better.
 
   (W1) Gas only.  A compact pump has no impeller (ICoolantPumpHost.getImpeller is null), so it charges and owns
        gas loops only; the liquid-only multiblocks (fluid heater, degasser) have no compact version.
-  (W2) No controls.  Compact machines have no GUI, redstone modes or computer API beyond GregTech's own (soft
-       mallet, machine controller cover).  They report through the scanner, Waila and a right click.
+  (W2) Few controls.  Compact machines have no redstone modes or computer API beyond GregTech's own (soft
+       mallet, machine controller cover).  They report through their GUI (Note [Compact machine GUIs]), the
+       scanner and Waila, all from the same lines (getReadoutLines).
 */
 /** Base of the compact loop devices. See Note [Compact loop machines] */
-public abstract class MTECompactLoopMachine extends MTETieredMachineBlock implements ICompactLoopDevice {
+public abstract class MTECompactLoopMachine extends MTETieredMachineBlock implements ICompactLoopDevice, IReadoutLines {
 
     /** The side the loop enters through; it leaves through the opposite one. UNKNOWN until first asked. */
     protected ForgeDirection mInletSide = ForgeDirection.UNKNOWN;
@@ -366,12 +373,40 @@ public abstract class MTECompactLoopMachine extends MTETieredMachineBlock implem
 
     // --- Readouts ---
 
+    @Override
     public List<String> getReadoutLines() {
         List<String> l = new ArrayList<>();
         l.add("Status: " + mStatus);
         addReadoutLines(l);
         l.add(gasStateLine());
+        ForgeDirection in = getLoopInletSide();
+        l.add(
+            String.format(
+                "Loop: in from %s, out to %s",
+                in.name()
+                    .toLowerCase(),
+                in.getOpposite()
+                    .name()
+                    .toLowerCase()));
         return l;
+    }
+
+    // --- GUI: see Note [Compact machine GUIs]
+
+    @Override
+    public String getGuiHeadline() {
+        return StatCollector.translateToLocal("modularnuclear.compact." + getKind() + ".tooltip");
+    }
+
+    /** A machine without slots has no use for the player's inventory in its GUI. */
+    @Override
+    public boolean doesBindPlayerInventory() {
+        return false;
+    }
+
+    @Override
+    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager syncManager, UISettings uiSettings) {
+        return new CompactLoopMachineGui<>(this).build(guiData, syncManager, uiSettings);
     }
 
     /** The bound segment's gas state as a short line. */
@@ -402,7 +437,7 @@ public abstract class MTECompactLoopMachine extends MTETieredMachineBlock implem
 
     @Override
     public boolean onRightclick(IGregTechTileEntity base, EntityPlayer player) {
-        if (base.isServerSide()) for (String line : getReadoutLines()) GTUtility.sendChatToPlayer(player, line);
+        openGui(player);
         return true;
     }
 

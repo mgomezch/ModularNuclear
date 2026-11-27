@@ -8,12 +8,17 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.cleanroommc.modularui.factory.PosGuiData;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ConvectiveHeatTransferModel;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.SegmentHeat;
+import com.gtnewhorizons.modularnuclear.common.gui.CompactBathGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.gas.GasMachineParts;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantBathSlot;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantBathRegistry;
@@ -56,7 +61,7 @@ public class MTECompactBath extends MTECompactLoopMachine {
      */
     public static final double COIL_PACE = 2.0;
 
-    static final int IN = 0, OUT = 1, FIRST_WORK = 2;
+    public static final int IN = 0, OUT = 1, FIRST_WORK = 2;
 
     private final CoolantBathSlot[] mSlots;
     private double mLastHeatWatts = 0.0;
@@ -129,7 +134,22 @@ public class MTECompactBath extends MTECompactLoopMachine {
         return index == IN && cools(stack);
     }
 
-    /** Hot ingots in hand go in; anything else takes the cooled ingots out, or reads the bath. */
+    public int getWorkSlotCount() {
+        return mSlots.length;
+    }
+
+    /** Its slots are worth the player's inventory in its GUI. */
+    @Override
+    public boolean doesBindPlayerInventory() {
+        return true;
+    }
+
+    @Override
+    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager syncManager, UISettings uiSettings) {
+        return new CompactBathGui(this).build(guiData, syncManager, uiSettings);
+    }
+
+    /** Hot ingots in hand go in; otherwise the GUI opens. */
     @Override
     public boolean onRightclick(IGregTechTileEntity base, EntityPlayer player) {
         if (!base.isServerSide()) return true;
@@ -145,14 +165,6 @@ public class MTECompactBath extends MTECompactLoopMachine {
                 held.stackSize -= moved;
             }
             if (held.stackSize <= 0) player.inventory.setInventorySlotContents(player.inventory.currentItem, null);
-            player.inventoryContainer.detectAndSendChanges();
-            base.markDirty();
-            return true;
-        }
-        if (mInventory[OUT] != null) {
-            ItemStack out = mInventory[OUT];
-            mInventory[OUT] = null;
-            if (!player.inventory.addItemStackToInventory(out)) player.dropPlayerItemWithRandomChoice(out, false);
             player.inventoryContainer.detectAndSendChanges();
             base.markDirty();
             return true;

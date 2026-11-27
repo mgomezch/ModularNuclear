@@ -11,6 +11,10 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.FluidTankInfo;
 
+import com.cleanroommc.modularui.factory.PosGuiData;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData.PHEData.SecondaryCoolantEntry;
@@ -22,6 +26,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.SegmentHeat;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.ICoolantPumpHost;
+import com.gtnewhorizons.modularnuclear.common.gui.CompactExchangerGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.gas.GasMachineParts;
 import com.gtnewhorizons.modularnuclear.common.util.FreezerRecipeEnergy;
 
@@ -173,6 +178,25 @@ public class MTECompactExchanger extends MTECompactLoopMachine {
         super(aName, aTier, 0, aDescription, aTextures);
         mGasTank = new FluidTank(capacity(aTier));
         mLiquidTank = new FluidTank(capacity(aTier));
+    }
+
+    public FluidTank getGasTank() {
+        return mGasTank;
+    }
+
+    public FluidTank getLiquidTank() {
+        return mLiquidTank;
+    }
+
+    @Override
+    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager syncManager, UISettings uiSettings) {
+        return new CompactExchangerGui(this).build(guiData, syncManager, uiSettings);
+    }
+
+    /** Its tanks take fluid cells from the player's inventory. */
+    @Override
+    public boolean doesBindPlayerInventory() {
+        return true;
     }
 
     static int capacity(int tier) {

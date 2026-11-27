@@ -17,6 +17,10 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.cleanroommc.modularui.factory.PosGuiData;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ILoopPortSides;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.CoolantPumpCore;
@@ -25,6 +29,8 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.ICoolantPumpHost
 import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.LoopPort;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.PumpImpeller;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.PumpLimits;
+import com.gtnewhorizons.modularnuclear.common.gui.CompactPumpGui;
+import com.gtnewhorizons.modularnuclear.common.gui.IReadoutLines;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
@@ -46,7 +52,8 @@ import mcp.mobius.waila.api.IWailaDataAccessor;
  * It runs its loop with the multiblock pump's own code (CoolantPumpCore), on gas loops only, within its tier's limits.
  * See Note [Compact loop machines], Note [Pump cores and their hosts] and Note [The compact pump's tanks]
  */
-public class MTECompactLoopPump extends MTETieredMachineBlock implements ICoolantPumpHost, ILoopPortSides {
+public class MTECompactLoopPump extends MTETieredMachineBlock
+    implements ICoolantPumpHost, ILoopPortSides, IReadoutLines {
 
     private final CoolantPumpCore mCore = new CoolantPumpCore(this);
     /** The side the loop returns through; it leaves through the opposite one. */
@@ -344,6 +351,42 @@ public class MTECompactLoopPump extends MTETieredMachineBlock implements ICoolan
 
     // --- Readouts ---
 
+    // --- GUI: see Note [Compact machine GUIs]
+
+    @Override
+    public boolean doesBindPlayerInventory() {
+        return false;
+    }
+
+    @Override
+    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager syncManager, UISettings uiSettings) {
+        return new CompactPumpGui(this).build(guiData, syncManager, uiSettings);
+    }
+
+    public int getChargeSetting() {
+        return mCore.mGasChargeSetting;
+    }
+
+    /** The GUI's button: a charge setting among the pump's, as a screwdriver's click sets the next. */
+    public void setChargeSetting(int setting) {
+        mCore.mGasChargeSetting = Math.floorMod(setting, getPumpLimits().liquidFractions.length);
+    }
+
+    public int getChargeSettingCount() {
+        return getPumpLimits().liquidFractions.length;
+    }
+
+    /** A charge setting in words: what it charges a condensing gas to, and a permanent one. */
+    public String describeChargeSetting(int setting) {
+        PumpLimits limits = getPumpLimits();
+        int i = Math.floorMod(setting, limits.liquidFractions.length);
+        return StatCollector.translateToLocalFormatted(
+            "modularnuclear.compact.pump.gui.charge",
+            limits.liquidFractions[i] * 100.0,
+            limits.chargePressuresBar[i]);
+    }
+
+    @Override
     public List<String> getReadoutLines() {
         List<String> l = new ArrayList<>();
         l.add(
@@ -390,7 +433,7 @@ public class MTECompactLoopPump extends MTETieredMachineBlock implements ICoolan
 
     @Override
     public boolean onRightclick(IGregTechTileEntity base, EntityPlayer player) {
-        if (base.isServerSide()) for (String line : getReadoutLines()) GTUtility.sendChatToPlayer(player, line);
+        openGui(player);
         return true;
     }
 
