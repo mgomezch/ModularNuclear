@@ -14,7 +14,11 @@ import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 
+import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -26,7 +30,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.ICoolantPumpHost;
-import com.gtnewhorizons.modularnuclear.common.gui.CompactLoopMachineGui;
+import com.gtnewhorizons.modularnuclear.common.gui.CompactInlineGui;
 import com.gtnewhorizons.modularnuclear.common.gui.IReadoutLines;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 
@@ -35,6 +39,7 @@ import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTETieredMachineBlock;
+import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import mcp.mobius.waila.api.IWailaConfigHandler;
@@ -94,8 +99,8 @@ twice the charge a loop does about a tenth better.
   (W1) Gas only.  A compact pump has no impeller (ICoolantPumpHost.getImpeller is null), so it charges and owns
        gas loops only; the liquid-only multiblocks (fluid heater, degasser) have no compact version.
   (W2) Few controls.  Compact machines have no redstone modes or computer API beyond GregTech's own (soft
-       mallet, machine controller cover).  They report through their GUI (Note [Compact machine GUIs]), the
-       scanner and Waila, all from the same lines (getReadoutLines).
+       mallet, machine controller cover).  They report through the scanner and Waila, from the same lines
+       (getReadoutLines), and through the tooltips of their GUI (Note [Compact machine GUIs]).
 */
 /** Base of the compact loop devices. See Note [Compact loop machines] */
 public abstract class MTECompactLoopMachine extends MTETieredMachineBlock implements ICompactLoopDevice, IReadoutLines {
@@ -341,6 +346,7 @@ public abstract class MTECompactLoopMachine extends MTETieredMachineBlock implem
         mLoopFluid = fluid;
         mLastFlowM3s = flowM3s;
         onLoopTick(flowM3s, dt, fluid, segment);
+        advanceGuiPhase(dt);
     }
 
     /** The gas loop the machine is on, or null if it is on none or on a liquid loop. */
@@ -393,20 +399,111 @@ public abstract class MTECompactLoopMachine extends MTETieredMachineBlock implem
 
     // --- GUI: see Note [Compact machine GUIs]
 
-    @Override
-    public String getGuiHeadline() {
-        return StatCollector.translateToLocal("modularnuclear.compact." + getKind() + ".tooltip");
-    }
+    /** How long the GUI's arrow takes to fill at full load, s. */
+    private static final double ARROW_SECONDS = 2.0;
 
-    /** A machine without slots has no use for the player's inventory in its GUI. */
+    /** Where the GUI's arrow is in its cycle, 0 to 1; it moves while the machine works. */
+    private double mGuiPhase = 0.0;
+
+    /** The player's inventory is a GregTech one-block machine's, whether or not the machine has slots. */
     @Override
     public boolean doesBindPlayerInventory() {
-        return false;
+        return true;
     }
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager syncManager, UISettings uiSettings) {
-        return new CompactLoopMachineGui<>(this).build(guiData, syncManager, uiSettings);
+        return new CompactInlineGui<>(this).build(guiData, syncManager, uiSettings);
+    }
+
+    /** The GUI's arrow; GregTech's plain arrow unless a machine has one of its own. */
+    public UITexture getGuiProgressTexture() {
+        return GTGuiTextures.PROGRESSBAR_ARROW_STANDARD;
+    }
+
+    /** How hard the machine works, 0 to 1, which sets the pace of its GUI's arrow. */
+    protected double guiLoad() {
+        return 1.0;
+    }
+
+    /** The GUI's arrow: how far through its cycle, or 0 while the machine is idle. */
+    public double getGuiProgress() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return base != null && base.isActive() ? mGuiPhase : 0.0;
+    }
+
+    private void advanceGuiPhase(double dt) {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null || !base.isActive()) {
+            mGuiPhase = 0.0;
+            return;
+        }
+        double load = Math.max(0.05, Math.min(1.0, guiLoad()));
+        mGuiPhase = (mGuiPhase + load * dt / ARROW_SECONDS) % 1.0;
+    }
+
+    /** The lines of the arrow's tooltip: the machine's status and its own readout. */
+    public List<String> getGuiProgressLines() {
+        List<String> l = new ArrayList<>();
+        l.add(mStatus);
+        addReadoutLines(l);
+        return l;
+    }
+
+    /** What keeps the machine from working at all, for the GUI's error icon; empty for nothing. */
+    public String getGuiProblem() {
+        if (mPump == null) return "Not on a loop";
+        GasProperty g = gas();
+        if (g == null || mBoundSegment == null || !mBoundSegment.holdsGas()) return "Its loop holds no gas";
+        return "";
+    }
+
+    /** The loop's gas as a fluid for the GUI's inlet and outlet, or null off a charged gas loop. */
+    public FluidStack getGuiLoopFluid() {
+        return loopFluid(gas(), mBoundSegment);
+    }
+
+    static FluidStack loopFluid(GasProperty g, LoopSegment s) {
+        if (g == null || s == null || !s.holdsGas()) return null;
+        Fluid f = FluidRegistry.getFluid(g.getFluidName());
+        return f != null ? new FluidStack(f, 1000) : null;
+    }
+
+    /** Pressure the loop enters the machine at, bar: a pressure stage's own, else its segment's. */
+    protected double guiInletBar() {
+        return mBoundSegment != null ? mBoundSegment.getInletPressureBar() : 0.0;
+    }
+
+    /** The tooltip of the GUI's inlet (true) or outlet: which side, and the gas's state there. */
+    public List<String> getGuiPortLines(boolean inlet) {
+        List<String> l = new ArrayList<>();
+        ForgeDirection in = getLoopInletSide();
+        l.add(inlet ? "Loop in, from the " + sideName(in) : "Loop out, to the " + sideName(in.getOpposite()));
+        GasProperty g = gas();
+        LoopSegment s = mBoundSegment;
+        if (g == null || s == null || !s.holdsGas()) {
+            l.add(getGuiProblem());
+        } else if (inlet) {
+            l.add(stateLine(g, guiInletBar(), s.getGasIncomingEnthalpy()));
+        } else {
+            l.add(stateLine(g, s.getOutletPressureBar(), s.getGasEnthalpy()));
+        }
+        return l;
+    }
+
+    static String sideName(ForgeDirection side) {
+        if (side == ForgeDirection.UP) return "top";
+        if (side == ForgeDirection.DOWN) return "bottom";
+        return side.name()
+            .toLowerCase();
+    }
+
+    /** A gas's state as a short line: pressure, temperature and phase. */
+    static String stateLine(GasProperty g, double bar, double enthalpy) {
+        GasProperty.State st = g.state(bar * 1e5, enthalpy, new GasProperty.State());
+        String phase = st.quality >= 1.0 ? "vapour"
+            : st.quality <= 0.0 ? "liquid" : String.format("%.0f%% vapour", st.quality * 100.0);
+        return String.format("%.2f bar, %.1f °C, %s", bar, st.temperatureCelsius(), phase);
     }
 
     /** The bound segment's gas state as a short line. */

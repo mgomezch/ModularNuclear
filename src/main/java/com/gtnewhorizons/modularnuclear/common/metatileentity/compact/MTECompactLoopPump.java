@@ -15,6 +15,8 @@ import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.cleanroommc.modularui.factory.PosGuiData;
@@ -353,9 +355,10 @@ public class MTECompactLoopPump extends MTETieredMachineBlock
 
     // --- GUI: see Note [Compact machine GUIs]
 
+    /** The player's inventory is a GregTech one-block machine's. See Note [Compact machine GUIs] */
     @Override
     public boolean doesBindPlayerInventory() {
-        return false;
+        return true;
     }
 
     @Override
@@ -384,6 +387,82 @@ public class MTECompactLoopPump extends MTETieredMachineBlock
             "modularnuclear.compact.pump.gui.charge",
             limits.liquidFractions[i] * 100.0,
             limits.chargePressuresBar[i]);
+    }
+
+    // --- GUI: see Note [Compact machine GUIs]
+
+    /** The arrow: how far the loop is charged. */
+    public double getGuiProgress() {
+        long required = mCore.getRequiredFillLiters();
+        return required > 0L ? Math.min(1.0, (double) mCore.getCurrentFillLiters() / required) : 0.0;
+    }
+
+    public List<String> getGuiProgressLines() {
+        List<String> l = new ArrayList<>();
+        l.add(getLoopStatus());
+        l.add(
+            "State: " + mCore.getLoopStateName()
+                + (isAllowedToWork() ? "" : " (stopped: the charge returns to the tanks)"));
+        return l;
+    }
+
+    /** What keeps the pump from running its loop at all, for the GUI's error icon; empty for nothing. */
+    public String getGuiProblem() {
+        String problem = tanks().problem();
+        if (problem != null) return StatCollector.translateToLocal(problem);
+        return mCore.isLoopFormed() ? "" : getLoopStatus();
+    }
+
+    public FluidStack getGuiReservoirFluid() {
+        FluidStack fluid = mCore.getReservoirFluid();
+        return fluid != null ? new FluidStack(fluid.getFluid(), 1000) : null;
+    }
+
+    public List<String> getGuiReservoirLines() {
+        List<String> l = new ArrayList<>();
+        IronTankReservoir tanks = tanks();
+        if (tanks.problem() != null) {
+            l.add(StatCollector.translateToLocal(tanks.problem()));
+            return l;
+        }
+        l.add(
+            String.format(
+                "%d × %s",
+                tanks.getTankCount(),
+                tanks.getTankBlock()
+                    .getLocalizedName()));
+        l.add(String.format("%,d / %,d L", tanks.getTotalCoolantLiters(), tanks.getTotalTankCapacityLiters()));
+        return l;
+    }
+
+    /** The loop's gas as a fluid, or null for a loop not yet charged with one. */
+    public FluidStack getGuiLoopFluid() {
+        if (!(mCore.getEngine() instanceof GasLoopEngine g) || g.getGas() == null || mCore.getCurrentFillLiters() <= 0L)
+            return null;
+        Fluid f = FluidRegistry.getFluid(
+            g.getGas()
+                .getFluidName());
+        return f != null ? new FluidStack(f, 1000) : null;
+    }
+
+    public List<String> getGuiLoopLines() {
+        List<String> l = new ArrayList<>();
+        l.add(
+            "Loop: out to the " + MTECompactLoopMachine.sideName(getSuctionSide().getOpposite())
+                + ", back from the "
+                + MTECompactLoopMachine.sideName(getSuctionSide()));
+        if (mCore.isLoopFormed()) {
+            double liters = 0.0;
+            if (mCore.getEngine() instanceof GasLoopEngine g) liters = g.getTotalVolumeM3() * 1000.0;
+            l.add(String.format("%,.0f of %,.0f L of pipes and machines", liters, tier().maxLoopVolumeLiters));
+            l.add(
+                String
+                    .format("Charge: %,d / %,d L of gas", mCore.getCurrentFillLiters(), mCore.getRequiredFillLiters()));
+        } else {
+            l.add(getLoopStatus());
+        }
+        l.add(String.format("Rated %.0f bar at the pump", tier().maxPressureBar));
+        return l;
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.compact;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.nbt.NBTTagCompound;
@@ -193,12 +194,6 @@ public class MTECompactExchanger extends MTECompactLoopMachine {
         return new CompactExchangerGui(this).build(guiData, syncManager, uiSettings);
     }
 
-    /** Its tanks take fluid cells from the player's inventory. */
-    @Override
-    public boolean doesBindPlayerInventory() {
-        return true;
-    }
-
     static int capacity(int tier) {
         return 8000 << (tier - CompactTier.FIRST);
     }
@@ -367,6 +362,47 @@ public class MTECompactExchanger extends MTECompactLoopMachine {
         }
         mStatus = "Liquefying " + cryogen.inputFluidName;
         return moved;
+    }
+
+    // --- GUI: see Note [Compact machine GUIs]
+
+    /** The arrow: the heat taken towards the next litre of liquid. */
+    @Override
+    public double getGuiProgress() {
+        if (mMatched == null || mLastHeatWatts <= 0.0) return 0.0;
+        return Math.min(1.0, mHeatJoules / Math.max(1.0, mMatched.latentHeat()));
+    }
+
+    /** The tooltip of a pass's slot: its sides, the gas going in and coming out, and for the second its heat. */
+    public List<String> getGuiPassLines(boolean second) {
+        List<String> l = new ArrayList<>();
+        ForgeDirection in = second ? mSecond.getLoopInletSide() : getLoopInletSide();
+        l.add(
+            String.format(
+                "%s pass: in from the %s, out to the %s",
+                second ? "Second" : "First",
+                sideName(in),
+                sideName(in.getOpposite())));
+        if (!second) {
+            l.add("In: " + getGuiPortLines(true).get(1));
+            l.add("Out: " + getGuiPortLines(false).get(1));
+            return l;
+        }
+        GasProperty g = mSecond.gas();
+        LoopSegment seg = mSecond.segment;
+        if (g == null || seg == null || !seg.holdsGas()) {
+            l.add("None: a second pass makes it a recuperator");
+            return l;
+        }
+        l.add("In: " + stateLine(g, seg.getInletPressureBar(), seg.getGasIncomingEnthalpy()));
+        l.add("Out: " + stateLine(g, seg.getOutletPressureBar(), seg.getGasEnthalpy()));
+        l.add(String.format("Exchanging %sW between its passes", GasMachineParts.si(mLastRecuperatedWatts)));
+        return l;
+    }
+
+    /** The second pass's gas as a fluid, or null with no gas loop through it. */
+    public FluidStack getGuiSecondPassFluid() {
+        return loopFluid(mSecond.gas(), mSecond.segment);
     }
 
     @Override

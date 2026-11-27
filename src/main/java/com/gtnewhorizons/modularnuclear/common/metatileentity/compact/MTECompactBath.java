@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.compact;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -138,12 +139,6 @@ public class MTECompactBath extends MTECompactLoopMachine {
         return mSlots.length;
     }
 
-    /** Its slots are worth the player's inventory in its GUI. */
-    @Override
-    public boolean doesBindPlayerInventory() {
-        return true;
-    }
-
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager syncManager, UISettings uiSettings) {
         return new CompactBathGui(this).build(guiData, syncManager, uiSettings);
@@ -274,6 +269,43 @@ public class MTECompactBath extends MTECompactLoopMachine {
             if (proposed[i] > 0.0) slots[i].currentTemp -= proposed[i] * scale / slots[i].heatCapacity;
         }
         return moved;
+    }
+
+    // --- GUI: see Note [Compact machine GUIs]
+
+    /** The arrow: how far the ingot nearest done has cooled, from its start to its target. */
+    @Override
+    public double getGuiProgress() {
+        double best = 0.0;
+        for (CoolantBathSlot s : mSlots) {
+            if (s == null || s.isEmpty()) continue;
+            best = Math.max(best, cooledFraction(s));
+        }
+        return best;
+    }
+
+    private static double cooledFraction(CoolantBathSlot s) {
+        double span = s.startTemp - s.targetTemp;
+        return span > 0.0 ? Math.max(0.0, Math.min(1.0, (s.startTemp - s.currentTemp) / span)) : 1.0;
+    }
+
+    @Override
+    public List<String> getGuiProgressLines() {
+        List<String> l = new ArrayList<>();
+        l.add(mStatus);
+        l.add(String.format("Heat taken: %sW", GasMachineParts.si(mLastHeatWatts)));
+        l.add(String.format("%,d ingots cooled", mCooledItems));
+        return l;
+    }
+
+    /** The tooltip lines of the ingot in working slot i: its temperature and how far it has cooled. */
+    public List<String> getGuiWorkSlotLines(int i) {
+        List<String> l = new ArrayList<>();
+        CoolantBathSlot s = i < mSlots.length ? mSlots[i] : null;
+        if (s == null || s.isEmpty()) return l;
+        l.add(String.format("%.0f °C, done at %.0f °C", s.currentTemp, s.targetTemp));
+        l.add(String.format("%.0f%% cooled", 100.0 * cooledFraction(s)));
+        return l;
     }
 
     // --- Readouts ---

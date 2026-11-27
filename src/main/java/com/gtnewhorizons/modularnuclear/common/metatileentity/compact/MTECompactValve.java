@@ -77,6 +77,18 @@ public class MTECompactValve extends MTECompactLoopMachine implements GasPressur
         base.setActive(c.massFlow > 0.0);
     }
 
+    // --- GUI: see Note [Compact machine GUIs]
+
+    @Override
+    protected double guiLoad() {
+        return mOpening;
+    }
+
+    @Override
+    protected double guiInletBar() {
+        return mLastInBar;
+    }
+
     @Override
     protected void addReadoutLines(List<String> l) {
         l.add(String.format("Opening: %.1f%%, %.1f kg/s", mOpening * 100.0, mLastMassFlow));

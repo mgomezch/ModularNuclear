@@ -1,20 +1,23 @@
 package com.gtnewhorizons.modularnuclear.common.gui;
 
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
-import com.cleanroommc.modularui.api.drawable.IKey;
-import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.ModularPanel;
-import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.CycleButtonWidget;
+import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.compact.MTECompactLoopPump;
 
+import gregtech.api.modularui2.GTGuiTextures;
+
 /**
- * A Compact Loop Pump's GUI: its loop's charge setting, on a button that cycles it as a screwdriver does.
- * See Note [Compact machine GUIs] and Note [The pump on a gas loop]
+ * A Compact Loop Pump's GUI: the gas in its tanks, the arrow for its loop's charge, and the gas in its loop; a
+ * button in the bottom left corner cycles the charge setting, as a screwdriver does. See Note [Compact machine GUIs]
+ * and Note [The pump on a gas loop]
  */
 public class CompactPumpGui extends CompactLoopMachineGui<MTECompactLoopPump> {
 
@@ -32,27 +35,40 @@ public class CompactPumpGui extends CompactLoopMachineGui<MTECompactLoopPump> {
     }
 
     @Override
-    protected IWidget createMachineRow(ModularPanel panel, PanelSyncManager syncManager) {
+    protected Flow createProcessRow(ModularPanel panel, PanelSyncManager syncManager) {
+        return Flow.row()
+            .childPadding(SLOT_SIZE / 2)
+            .child(stateSlot(syncManager, "tanks", machine::getGuiReservoirFluid, machine::getGuiReservoirLines))
+            .child(
+                arrow(
+                    syncManager,
+                    "progress",
+                    GTGuiTextures.PROGRESSBAR_ARROW_STANDARD,
+                    ProgressWidget.Direction.RIGHT,
+                    machine::getGuiProgress,
+                    machine::getGuiProgressLines))
+            .child(stateSlot(syncManager, "loop", machine::getGuiLoopFluid, machine::getGuiLoopLines));
+    }
+
+    @Override
+    protected Flow createBottomLeftCornerFlow(ModularPanel panel, PanelSyncManager syncManager) {
         int settings = machine.getChargeSettingCount();
-        // A cycle button: a click sets the next setting, a right click the one before
+        // A click sets the next setting, a right click the one before
         CycleButtonWidget button = new CycleButtonWidget().size(SLOT_SIZE)
             .stateCount(settings)
             .value(chargeSyncer)
-            .overlay(IKey.str("%"));
-        String tip = StatCollector.translateToLocal("modularnuclear.compact.pump.gui.charge.tooltip");
-        for (int i = 0; i < settings; i++) button.addTooltip(i, tip);
-        return Flow.row()
-            .fullWidth()
-            .coverChildrenHeight()
-            .childPadding(4)
-            .paddingRight(POWER_SWITCH_ROOM)
-            .crossAxisAlignment(Alignment.CrossAxis.CENTER)
-            .child(button)
-            .child(
-                IKey.dynamic(() -> machine.describeChargeSetting(chargeSyncer.getIntValue()))
-                    .asWidget()
-                    .scale(TEXT_SCALE)
-                    .textAlign(Alignment.CenterLeft)
-                    .expanded());
+            .overlay(GTGuiTextures.OVERLAY_BUTTON_SCREWDRIVER);
+        String hint = EnumChatFormatting.GRAY
+            + StatCollector.translateToLocal("modularnuclear.compact.pump.gui.charge.tooltip");
+        for (int i = 0; i < settings; i++) {
+            button.addTooltip(i, machine.describeChargeSetting(i));
+            button.addTooltip(i, hint);
+        }
+        return super.createBottomLeftCornerFlow(panel, syncManager).child(button);
+    }
+
+    @Override
+    protected Widget<?> createErrorIcon(PanelSyncManager syncManager) {
+        return errorIcon(syncManager, machine::getGuiProblem);
     }
 }

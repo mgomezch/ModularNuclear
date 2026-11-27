@@ -714,4 +714,4 @@ modularnuclear.nei.compact.row.tank=Gas tank, liquid tank
 modularnuclear.nei.compact.row.pressure=Bursts above
 modularnuclear.nei.compact.row.volume=Gas it holds
 modularnuclear.compact.pump.gui.charge=Charge: %.0f%% liquid (condensing gas), %.1f bar (permanent gas)
-modularnuclear.compact.pump.gui.charge.tooltip=Next charge setting, as a screwdriver's click
+modularnuclear.compact.pump.gui.charge.tooltip=Click for the next charge setting, right-click for the one before, as a screwdriver cycles them

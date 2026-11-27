@@ -87,6 +87,13 @@ public class MTECompactRadiator extends MTECompactLoopMachine {
         base.setActive(mFanRunning);
     }
 
+    // --- GUI: see Note [Compact machine GUIs]
+
+    @Override
+    protected double guiLoad() {
+        return (double) mLastEuPerTick / Math.max(1L, tier().radiatorFanEu);
+    }
+
     @Override
     protected void addReadoutLines(List<String> l) {
         l.add(

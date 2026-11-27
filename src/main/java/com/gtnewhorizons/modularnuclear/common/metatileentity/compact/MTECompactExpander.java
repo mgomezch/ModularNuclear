@@ -6,6 +6,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.cleanroommc.modularui.drawable.UITexture;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasPressureStage;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasStageModels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.gas.GasMachineParts;
@@ -15,6 +16,7 @@ import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.api.render.TextureFactory;
 
 /**
@@ -119,6 +121,23 @@ public class MTECompactExpander extends MTECompactLoopMachine implements GasPres
         mLastEuPerTick = whole;
         mStatus = !loaded ? "Free-wheeling" : c.massFlow > 0.0 ? "Expanding" : "No flow";
         base.setActive(loaded && c.massFlow > 0.0);
+    }
+
+    // --- GUI: see Note [Compact machine GUIs]
+
+    @Override
+    public UITexture getGuiProgressTexture() {
+        return GTGuiTextures.PROGRESSBAR_ARROW_MULTIPLE;
+    }
+
+    @Override
+    protected double guiLoad() {
+        return (double) mLastEuPerTick / Math.max(1L, tier().euPerTick);
+    }
+
+    @Override
+    protected double guiInletBar() {
+        return mLastInBar;
     }
 
     @Override

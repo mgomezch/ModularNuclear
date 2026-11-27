@@ -5,6 +5,7 @@ import java.util.List;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.StatCollector;
 
+import com.cleanroommc.modularui.drawable.UITexture;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasPressureStage;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasStageModels;
@@ -14,6 +15,7 @@ import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.api.render.TextureFactory;
 
 /**
@@ -130,6 +132,23 @@ public class MTECompactCompressor extends MTECompactLoopMachine implements GasPr
         mStatus = why;
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base != null) base.setActive(false);
+    }
+
+    // --- GUI: see Note [Compact machine GUIs]
+
+    @Override
+    public UITexture getGuiProgressTexture() {
+        return GTGuiTextures.PROGRESSBAR_COMPRESS;
+    }
+
+    @Override
+    protected double guiLoad() {
+        return mSpeed;
+    }
+
+    @Override
+    protected double guiInletBar() {
+        return mLastSuctionBar;
     }
 
     @Override
