@@ -11,6 +11,10 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPu
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.gas.MTEExpansionValve;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.gas.MTEGasCompressor;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.gas.MTERadiator;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.gas.MTETurboExpander;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.pipe.MTECoolantPipe;
 
 import gregtech.api.enums.Materials;
@@ -26,6 +30,10 @@ public class CoolantLoopMetaTileEntities {
     public static MTEPressurizedDegasser pressurizedDegasser;
     public static MTECoolantBath coolantBath;
     public static MTEPressurizedFluidHeater pressurizedFluidHeater;
+    public static MTEGasCompressor gasCompressor;
+    public static MTEExpansionValve expansionValve;
+    public static MTETurboExpander turboExpander;
+    public static MTERadiator radiator;
 
     public static final int PUMP_ID = 32120;
     public static final int PRESSURIZED_HATCH_INPUT_ID = 32121;
@@ -41,6 +49,11 @@ public class CoolantLoopMetaTileEntities {
     public static final int PIPE_HUGE_ID = 32153;
     public static final int PRESSURIZED_HATCH_OUTPUT_ID = 32160;
     public static final int PRESSURIZED_FLUID_HEATER_ID = 32175;
+    /** The gas loop machines. See Note [Gas loop machines] */
+    public static final int GAS_COMPRESSOR_ID = 32190;
+    public static final int EXPANSION_VALVE_ID = 32191;
+    public static final int TURBO_EXPANDER_ID = 32192;
+    public static final int RADIATOR_ID = 32193;
     /**
      * Pipes of the materials added after the first PACKED_PIPE_MATERIALS, which have no room in the block above (it
      * holds the pipes size by size): 32176..32185, material by material, in size order.
@@ -88,6 +101,11 @@ public class CoolantLoopMetaTileEntities {
             PRESSURIZED_FLUID_HEATER_ID,
             "multimachine.pressurizedfluidheater",
             "Pressurized fluid heater");
+
+        gasCompressor = new MTEGasCompressor(GAS_COMPRESSOR_ID, "multimachine.gascompressor", "Gas Compressor");
+        expansionValve = new MTEExpansionValve(EXPANSION_VALVE_ID, "multimachine.expansionvalve", "Expansion Valve");
+        turboExpander = new MTETurboExpander(TURBO_EXPANDER_ID, "multimachine.turboexpander", "Turbo-Expander");
+        radiator = new MTERadiator(RADIATOR_ID, "multimachine.radiator", "Radiator");
 
         for (int s = 0; s < PIPE_THICKNESSES.length; s++) {
             float thick = PIPE_THICKNESSES[s];
