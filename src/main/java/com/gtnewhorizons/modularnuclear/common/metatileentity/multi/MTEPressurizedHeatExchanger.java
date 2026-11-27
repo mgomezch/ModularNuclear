@@ -1297,6 +1297,14 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         return l;
     }
 
+    /** The scanner's lines: GregTech's, then the gas modes'. */
+    @Override
+    public String[] getInfoData() {
+        java.util.List<String> lines = new ArrayList<>(java.util.Arrays.asList(super.getInfoData()));
+        lines.addAll(getReadoutLines());
+        return lines.toArray(new String[0]);
+    }
+
     /** Our GUIs show no GregTech logo. */
     @Override
     public boolean supportsLogo() {
