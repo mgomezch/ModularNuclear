@@ -3,9 +3,9 @@ package com.gtnewhorizons.modularnuclear.common.coolantloop.gas;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 
 /**
- * Heat exchange between a device and the gas in its loop segment. The heat goes into the gas flowing through, applied
- * by the loop's next step (wrinkle (W1) of Note [Gas loop pressure zones]); these helpers cap it so the gas doesn't
- * cross the temperature it exchanges with.
+ * Heat exchange between a device and the gas in its loop segment. A device pulls the gas towards its own
+ * temperature, a pull the loop's next step solves with the flow (wrinkle (W1) of Note [Gas loop pressure zones]), so
+ * the gas settles at the device's temperature at most, however strong the device.
  */
 public final class SegmentHeat {
 
@@ -71,9 +71,16 @@ public final class SegmentHeat {
         double j;
         if (proposedJoules > 0.0) j = Math.max(0.0, Math.min(proposedJoules, cap));
         else j = Math.min(0.0, Math.max(proposedJoules, cap));
-        if (j != 0.0) {
+        if (j == 0.0) return 0.0;
+        // As a pull towards the body's enthalpy, of the strength that moves j now (wrinkle (W1))
+        double bound = gas.enthalpy(pressurePa(s), otherK);
+        double gap = bound - s.getGasEnthalpy();
+        if (Math.abs(gap) < 1e-9 || Math.signum(gap) != Math.signum(j)) {
             s.addPendingGasHeatJoules(j);
-            s.boundGasHeat(j, gas.enthalpy(pressurePa(s), otherK));
+            s.boundGasHeat(j, bound);
+        } else {
+            double dT = Math.abs(otherK - (s.getCurrentTemperatureCelsius() + 273.15));
+            s.addGasRelaxation(j / gap, otherK, dT > 1e-6 ? Math.abs(j) / dT : 0.0);
         }
         return j;
     }
@@ -93,11 +100,16 @@ public final class SegmentHeat {
         double tIn = s.getIncomingTemperatureCelsius() + 273.15;
         double dT = otherK - tIn;
         if (Math.abs(dT) < 1e-9) return 0.0;
-        double qMax = through * (gas.enthalpy(pressurePa(s), otherK) - s.getGasIncomingEnthalpy());
+        double bound = gas.enthalpy(pressurePa(s), otherK);
+        double qMax = through * (bound - s.getGasIncomingEnthalpy());
         if (qMax * dT <= 0.0) return 0.0;
-        double capacity = qMax / dT;
-        double q = (1.0 - Math.exp(-conductanceWPerK * dt / capacity)) * qMax;
-        return exchange(gas, s, otherK, q, dt);
+        // Past an NTU of 12 the outlet is within a millionth of the body's temperature; stronger pulls only lose
+        // precision
+        double ntu = Math.min(12.0, conductanceWPerK * dt / (qMax / dT));
+        double eps = 1.0 - Math.exp(-ntu);
+        // A well-mixed cell pulled with k against a through-flow F settles at effectiveness k / (F + k)
+        s.addGasRelaxation(through * Math.expm1(ntu), otherK, conductanceWPerK * dt);
+        return eps * qMax;
     }
 
     /** The gas flowing through a segment, as a counterflow exchanger's stream. */

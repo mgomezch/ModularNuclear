@@ -29,9 +29,9 @@ modelled.  Each step (step):
   2. Each stage sees its inlet (the upstream zone's pressure and the enthalpy flowing in) and its outlet pressure,
      and answers a mass flow and an outlet enthalpy (GasStageModels has the physics).
   3. The mass moves: each zone gains what flows in and loses what flows out, spread over its segments as their
-     densities say, carried from segment to segment by flows worked out in flow order (W5).
-  4. Enthalpy is advected on those flows with LoopAdvection.stepScalar, each segment's mass as its capacity and a
-     stage's own segment fixed at the stage's outlet enthalpy.
+     densities say.
+  4. Enthalpy is advected at each zone's through-flow (W5) with LoopAdvection.stepScalar, each segment's mass as
+     its capacity and a stage's own segment fixed at the stage's outlet enthalpy.
   5. Each segment's temperature, quality and density follow from its zone's pressure and its new enthalpy, and
      the limits are checked: a pipe above its rating bursts, gas below its freezing point freezes, a segment above
      its temperature limit melts.
@@ -43,17 +43,23 @@ loops alike.
 
 Wrinkles:
 
-(W1) Heat from devices is applied in the next step's advection, not to the segment at once
-     (LoopSegment.addPendingGasHeatJoules, the source term of stepScalar).  A device's segment holds far less gas
-     than flows through it in a tick (a PHE's segment holds a fraction of a kilogram of vapour; tens of kilograms
-     pass in a tick), so heat added to the segment's own mass could move almost nothing without the segment
-     crossing the temperature it exchanges with.  As a source in the advection the heat goes into the gas
-     flowing through, the outlet settles at h_in - Q / mdot, and the heat is conserved exactly.
-     SegmentHeat.limit caps a device's heat by what the gas in and through the segment can give up or take
-     before it reaches the device's temperature, on the last step's flow.  The flow may change before the step
-     applies the heat, so the segment also keeps the enthalpy the device's temperature bounds it to
-     (LoopSegment.boundGasHeat), and the step holds the new enthalpy to it.  What the bound holds back of the
-     segment's own content stays pending for the next step, so no heat is lost.
+(W1) Devices act on the gas as a pull towards their own temperature, solved with the next step's advection
+     (LoopSegment.addGasRelaxation, the relaxK terms of stepScalar): a pull of k (kg) towards enthalpy h_b adds
+     k (h_b - h') to a segment's heat, with h' its enthalpy at the end of the step.  A device's segment holds far
+     less gas than flows through it in a tick (a PHE's segment holds a fraction of a kilogram of vapour; tens of
+     kilograms pass in a tick), so heat put into the segment's own gas would move almost nothing without crossing
+     the device's temperature.  Against a through-flow F a well-mixed segment settles at effectiveness
+     k / (F + k), so an exchanger of effectiveness eps pulls with k = F eps / (1 - eps)
+     (SegmentHeat.exchangeThrough); a device that has worked out its heat pulls with the k that moves it now
+     (SegmentHeat.exchange).  Solved implicitly, no pull, however strong, takes the gas past h_b.  A pull is
+     towards a temperature, which the step turns into an enthalpy at the pressure it has just solved, and it moves
+     no more than the device's conductance times the temperature difference it finds (k <= UA dt dT / dh).  A
+     condenser at ambient with its gas condensing at ambient pulls on a target that a small change in pressure
+     moves across the phase change, and without that cap a pull sized on sensible heat moved the latent heat
+     instead and rang the high side between 5 and 77 bar.
+     Historical note: devices first put in a fixed heat worked out on the last step's state.  When the flow or
+     the inflow changed before the step applied it, strong exchangers overshot and undershot in turn, and long
+     loops swung between ambient and hundreds of degrees from tick to tick.
 
 (W2) A passive stage (a valve or an expander) passes a flow that follows the pressure difference.  Over a step
      it could pass more than equalizes its two zones and set them oscillating, so the engine caps it at half of
@@ -71,30 +77,30 @@ Wrinkles:
      the largest stage's flow at its inlet density, so "flowing" and "at rest" mean what they do for a liquid
      loop.  Devices read their own segment's flow with getLocalVolumetricFlow, from its mass flow and density.
 
-(W5) Gas moves from segment to segment with its mass, so heat stays where its gas is.  A step works out the mass
-     each segment ends with: what its density at its zone's pressure holds, scaled so the zone holds its mass
-     plus what the stages brought in less what they took out.  Then, in flow order from the stage that feeds
-     the zone (buildFlowOrder), each segment's inflow is what its upstream passed on, and its outflow is that
-     inflow less the mass it gained.  Advection on those flows by backward Euler conserves heat exactly when
-     the flows change along the zone: (m + F_in) h' = m h + F_in h_in + Q.  A zone with no stage feeding it (a
-     loop at rest) has no flows, and its mass only re-spreads.
-     Devices see the zone's through-flow (LoopSegment.getGasMassFlow: the smaller of what enters and leaves the
-     zone, times the segment's flow fraction), not the segment's own inflow.  The inflows swing as gas is
-     compressed and expanded along the zone, and a recuperator that sized its exchange on them fed the swings
-     back into the densities and rang.
-
-(W8) Each step takes a segment's mass only halfway (MASS_RELAXATION) to what its density at the zone's
-     pressure holds, as gas takes time to flow between parts of a zone and even out their pressures.  A segment
-     whose gas a device cools quickly would otherwise draw in its whole new share of the zone's mass at once,
-     and the flows that carry it (W5) swing the neighbouring segments' temperatures from tick to tick.  The zone's
-     mass still comes out exactly; only how it is spread lags.
-     Historical note: a first version advected each zone at one flow and spread mass changes over the zone at
-     the segments' own enthalpies, with corrections spread over the zone to balance the heat.  The corrections
-     moved heat from one end of a zone to the other and set a Brayton loop with a recuperator oscillating.
+(W5) A segment's gas is advected at a flow that runs from what enters its zone, at the zone's entry, to what
+     leaves it, at its exit, in proportion to the volume before the segment (in flow order, buildFlowOrder),
+     times its flow fraction.  What a zone gains or loses changes the gas's density where it is, as each step
+     spreads the zone's mass over its segments by their densities.  The heat is exact in a steady loop, where
+     nothing re-spreads and every zone passes on what it takes in, and slightly off while flows and densities
+     change.  Devices see the same flow (LoopSegment.getGasMassFlow): a condenser filling with liquid sees the
+     compressor's flow, not the valve's trickle, and with the compressor stopped no gas comes out of it.
+     Historical note: two versions conserved heat exactly in transients.  The first spread each step's
+     imbalance over the zone as a source, which moved heat from one end of a zone to the other and set a Brayton
+     loop with a recuperator oscillating.  The second carried each segment's change in mass on flows worked out
+     in flow order; a segment a strong exchanger chilled took in the whole flow to fill up with denser gas,
+     starved the segments after it, and set long loops of many pipes swinging between 1 K and thousands of
+     degrees.  Gas would flow back into such a segment from both sides; flows in one direction can't do that.
 
 (W6) A stage's flow follows what it answers with a lag of FLOW_LAG_SECONDS, the gas's inertia.  Without it the
      flows and pressures answer each other within a tick and ring with a period of two ticks: the compressor's
-     flow follows the suction pressure the valve's last flow left, and the other way round.
+     flow follows the suction pressure the valve's last flow left, and the other way round.  A passive stage's lag is held
+     below a quarter of the time either zone takes to turn its gas over (its mass over the flow), which is about
+     the time its pressure takes to answer the flow: a helium zone of a few hundred grams passing several kilograms
+     a second settles within two ticks, and a lag of four ticks there set the flows and pressures swinging until a
+     zone emptied.  Each answer is also damped as by backward Euler on its upstream zone's emptying: a stage's flow
+     goes with its inlet pressure, which falls as its zone empties, so the flow is the one the step's end pressure
+     would give, mdot' = mdot m / (m + mdot dt) for a zone of mass m.  It leaves a large zone's flow alone and
+     halves one that would empty its zone within the step.
 
 (W9) A compressor has a high-pressure cutout: it passes no more than half of what would take its discharge zone
      to CUTOUT_FRACTION of the zone's weakest pressure rating (zoneMaxPressure): the mass the zone holds at that
@@ -120,12 +126,12 @@ public class GasLoopEngine extends CoolantLoopEngine {
     /** How far a step takes each segment's mass towards what its density holds. See wrinkle (W8) */
     static final double MASS_RELAXATION = 0.5;
     /** Share of its zone's weakest rating a compressor's discharge is held to. See wrinkle (W9) */
-    public static final double CUTOUT_FRACTION = 0.85;
+    public static final double CUTOUT_FRACTION = 0.7;
     /** Most of its upstream zone's mass a stage takes in a step. See wrinkle (W2) */
     static final double MAX_TURNOVER = 0.5;
     /** Discharge pressure (share of the rating) that stops a compressor, and that lets it start again. */
-    public static final double CUTOUT_LATCH_FRACTION = 0.9;
-    public static final double CUTOUT_RELEASE_FRACTION = 0.8;
+    public static final double CUTOUT_LATCH_FRACTION = 0.8;
+    public static final double CUTOUT_RELEASE_FRACTION = 0.7;
 
     private final GasProperty gas;
     private final Map<LoopId, GasPressureStage> stages = new HashMap<>();
@@ -160,7 +166,7 @@ public class GasLoopEngine extends CoolantLoopEngine {
         incoming = new double[0], tempK = new double[0], quality = new double[0];
     private boolean[] fixed = new boolean[0];
     private double[] zoneIn = new double[0], zoneOut = new double[0], zoneMass = new double[0];
-    private double[] target = new double[0], outflow = new double[0];
+    private double[] target = new double[0], outflow = new double[0], relaxK = new double[0], relaxKH = new double[0];
     private final GasPressureStage.Context ctx = new GasPressureStage.Context();
     private final GasProperty.State st = new GasProperty.State();
 
@@ -417,7 +423,13 @@ public class GasLoopEngine extends CoolantLoopEngine {
             stageImpl[k].computeStage(ctx);
             // See wrinkle (W6)
             double answered = Math.max(0.0, ctx.massFlow);
-            double flow = stageMassFlow[k] + (answered - stageMassFlow[k]) * dt / (FLOW_LAG_SECONDS + dt);
+            // Backward Euler on the upstream zone's emptying: the flow the step's end pressure would give. (W6)
+            if (zoneMass[up] > 0.0) answered *= zoneMass[up] / (zoneMass[up] + answered * dt);
+            // The lag is shorter than the time either zone takes to turn its gas over. See wrinkle (W6)
+            double moving = Math.max(answered, stageMassFlow[k]);
+            double turnover = moving > 0.0 ? Math.min(zoneMass[up], zoneMass[down]) / moving : Double.MAX_VALUE;
+            double lag = stageImpl[k].isPassive() ? Math.min(FLOW_LAG_SECONDS, 0.25 * turnover) : FLOW_LAG_SECONDS;
+            double flow = stageMassFlow[k] + (answered - stageMassFlow[k]) * dt / (lag + dt);
             if (answered == 0.0 && flow < 1e-6) flow = 0.0;
             flow = Math.min(flow, ctx.maxMassFlow);
             if (up == down) flow = 0.0;
@@ -450,46 +462,68 @@ public class GasLoopEngine extends CoolantLoopEngine {
             zoneFlow[z] = Math.min(zoneIn[z], zoneOut[z]);
         }
 
-        // 4. The flows between segments that carry each one's change in mass. See wrinkle (W5)
-        Arrays.fill(inflow, 0.0);
-        for (int k = 0; k < stageSegment.length; k++) inflow[stageSegment[k]] = stageMassFlow[k] * dt;
+        // 4. The flow through each segment, from what enters its zone to what leaves it. See wrinkle (W5)
         for (int z = 0; z < zoneCount; z++) {
+            double volume = 0.0;
+            for (int i : zoneMembers[z]) volume += segments.get(i)
+                .getGasVolume();
+            double before = 0.0;
             for (int i : zoneOrder[z]) {
-                if (!isStage[i]) {
-                    double in = 0.0;
-                    for (int u : upstreams[i]) {
-                        if (zoneOf[u] == z) in += outflow[u] * shareInto(u, i);
-                    }
-                    inflow[i] = in;
+                LoopSegment s = segments.get(i);
+                double v = s.getGasVolume();
+                if (isStage[i]) {
+                    inflow[i] = stageMassFlow[stageIndexOf(i)] * dt;
+                } else {
+                    double along = volume > 0.0 ? (before + 0.5 * v) / volume : 0.5;
+                    inflow[i] = (zoneIn[z] + (zoneOut[z] - zoneIn[z]) * along) * s.getFlowFraction() * dt;
                 }
-                outflow[i] = Math.max(0.0, inflow[i] - (target[i] - cap[i]));
+                before += v;
             }
         }
 
         // 5. Enthalpy advection on those flows, with the devices' heat as sources. See wrinkle (W1)
         for (int i = 0; i < n; i++) {
-            source[i] = segments.get(i)
-                .takePendingGasHeatJoules();
+            LoopSegment s = segments.get(i);
+            source[i] = s.takePendingGasHeatJoules();
+            // A pull towards a temperature, as the enthalpy at that temperature at the zone's pressure now
+            relaxK[i] = s.takeGasRelaxK();
+            double kt = s.takeGasRelaxKH(), ua = s.takeGasRelaxUa();
+            if (relaxK[i] > 0.0) {
+                double p = zonePressure[zoneOf[i]], tb = kt / relaxK[i];
+                double hb = gas.enthalpy(p, tb);
+                // No more than the conductance times the temperature difference it finds: across a phase change a
+                // small difference is a large one in enthalpy. See wrinkle (W1)
+                double gap = Math.abs(hb - value[i]);
+                double dT = Math.abs(tb - gas.state(p, value[i], st).temperatureK);
+                if (gap > 1e-9) relaxK[i] = Math.min(relaxK[i], ua * dT / gap);
+                relaxKH[i] = relaxK[i] * hb;
+            } else {
+                relaxKH[i] = 0.0;
+            }
             fixed[i] = isStage[i];
         }
         for (int k = 0; k < stageSegment.length; k++) value[stageSegment[k]] = stageEnthalpyOut[k];
-        LoopAdvection.stepScalar(advectionPlan, segments, cap, inflow, source, fixed, value, incoming, true);
+        LoopAdvection
+            .stepScalar(advectionPlan, segments, cap, inflow, source, relaxK, relaxKH, fixed, value, incoming, true);
         for (int i = 0; i < n; i++) {
             LoopSegment s = segments.get(i);
             // See wrinkle (W1): heat capped on the last step's flow must not carry the gas past its bound
-            double bounded = Math.max(Math.min(value[i], s.takeGasHeatCeiling()), s.takeGasHeatFloor());
-            if (bounded != value[i]) {
-                s.addPendingGasHeatJoules(target[i] * (value[i] - bounded));
-                value[i] = bounded;
-            }
+            value[i] = Math.max(Math.min(value[i], s.takeGasHeatCeiling()), s.takeGasHeatFloor());
+            s.setLastGasHeatJoules(
+                source[i] + (relaxK[i] > 0.0 ? relaxK[i] * (relaxKH[i] / relaxK[i] - value[i]) : 0.0));
             s.setGasEnthalpy(value[i]);
             s.setGasMassKg(target[i]);
             // Devices exchange with the zone's through-flow, not with the swings of compression. See wrinkle (W5)
-            s.setGasMassFlow(isStage[i] ? inflow[i] / dt : zoneFlow[zoneOf[i]] * s.getFlowFraction());
+            s.setGasMassFlow(inflow[i] / dt);
         }
 
         volumetricFlowRate = largestVolumeFlow > 1e-9 ? largestVolumeFlow : 0.0;
         deriveAndCheck(true);
+    }
+
+    private int stageIndexOf(int segment) {
+        for (int k = 0; k < stageSegment.length; k++) if (stageSegment[k] == segment) return k;
+        return -1;
     }
 
     /** The share of what segment u passes on that goes into segment d, by the flow fractions of u's downstreams. */
@@ -794,6 +828,8 @@ public class GasLoopEngine extends CoolantLoopEngine {
         stageShaftPower = new double[stageCount];
         target = new double[n];
         outflow = new double[n];
+        relaxK = new double[n];
+        relaxKH = new double[n];
         buildFlowOrder(n);
         zoneMaxPressure = new double[zoneCount];
         zoneCutoutMass = new double[zoneCount];

@@ -611,6 +611,53 @@ public class LoopSegment {
         this.pendingGasHeatJoules += joules;
     }
 
+    /**
+     * Devices' pull on the gas over the next step, as a relaxation towards a temperature: sum of k (kg) and of k T_b
+     * (K). The step turns T_b into an enthalpy at the pressure it solves. See wrinkle (W1) of Note [Gas loop pressure
+     * zones]
+     */
+    private double gasRelaxK = 0.0, gasRelaxKH = 0.0, gasRelaxUa = 0.0;
+
+    private double lastGasHeatJoules = 0.0;
+
+    /** Heat devices actually put into the gas over the last step, J (negative if they took it out). */
+    public double getLastGasHeatJoules() {
+        return lastGasHeatJoules;
+    }
+
+    public void setLastGasHeatJoules(double j) {
+        lastGasHeatJoules = j;
+    }
+
+    /**
+     * A pull of k (kg) towards a temperature, through a conductance of conductanceJPerK over the step: the step moves
+     * no more than that conductance times the temperature difference it finds.
+     */
+    public void addGasRelaxation(double k, double boundTemperatureK, double conductanceJPerK) {
+        if (!(k > 0.0) || Double.isNaN(boundTemperatureK)) return;
+        gasRelaxK += k;
+        gasRelaxKH += k * boundTemperatureK;
+        gasRelaxUa += Math.max(0.0, conductanceJPerK);
+    }
+
+    public double takeGasRelaxUa() {
+        double ua = gasRelaxUa;
+        gasRelaxUa = 0.0;
+        return ua;
+    }
+
+    public double takeGasRelaxK() {
+        double k = gasRelaxK;
+        gasRelaxK = 0.0;
+        return k;
+    }
+
+    public double takeGasRelaxKH() {
+        double kh = gasRelaxKH;
+        gasRelaxKH = 0.0;
+        return kh;
+    }
+
     private double gasHeatFloor = Double.NEGATIVE_INFINITY;
     private double gasHeatCeiling = Double.POSITIVE_INFINITY;
 

@@ -145,6 +145,17 @@ public final class LoopAdvection {
      */
     public static void stepScalar(Plan plan, List<LoopSegment> segments, double[] capacity, double[] inflow,
         double[] source, boolean[] fixed, double[] value, double[] incoming, boolean backwardEuler) {
+        stepScalar(plan, segments, capacity, inflow, source, null, null, fixed, value, incoming, backwardEuler);
+    }
+
+    /**
+     * As above, with each segment also relaxed towards a value: relaxK[i] (capacity units) pulls it towards
+     * relaxKV[i] / relaxK[i], solved with the step, so a strong pull settles the segment at that value instead of
+     * overshooting it.
+     */
+    public static void stepScalar(Plan plan, List<LoopSegment> segments, double[] capacity, double[] inflow,
+        double[] source, double[] relaxK, double[] relaxKV, boolean[] fixed, double[] value, double[] incoming,
+        boolean backwardEuler) {
         int n = segments.size();
         Graph g = plan.graphFor(segments);
         double[] old = g.old;
@@ -162,13 +173,15 @@ public final class LoopAdvection {
                 a[i] = old[i];
                 b[i] = 0.0;
             } else if (g.upstreams[i].length == 0) {
-                a[i] = c > 0.0 ? old[i] + source[i] / c : old[i];
+                double k = relaxK != null ? relaxK[i] : 0.0, kv = relaxKV != null ? relaxKV[i] : 0.0;
+                a[i] = c + k > 0.0 ? (c * old[i] + source[i] + kv) / (c + k) : old[i];
                 b[i] = 0.0;
             } else if (c > 0.0 || inflow[i] > 0.0) {
                 double in = inflow[i];
+                double k = relaxK != null ? relaxK[i] : 0.0, kv = relaxKV != null ? relaxKV[i] : 0.0;
                 double explicit = (1.0 - theta) * in * (g.mix(i, old) - old[i]);
-                double denom = c + theta * in;
-                a[i] = (c * old[i] + explicit + source[i]) / denom;
+                double denom = c + theta * in + k;
+                a[i] = (c * old[i] + explicit + source[i] + kv) / denom;
                 b[i] = theta * in / denom;
             } else {
                 a[i] = old[i];
