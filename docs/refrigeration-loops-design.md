@@ -67,11 +67,15 @@ it.  A liquid loop has one incompressible flow; a gas loop has:
   mass: `sum rho(P, h_i) V_i = m_z` (monotonic in P; safeguarded Newton in log P).  A liquid-full zone has a small
   compressibility, so an overcharged high side drives the pressure up until a pipe bursts, as in reality.
 - **Enthalpy advection.**  The loop's existing implicit advection (`LoopAdvection`) carries h instead of T, with
-  each segment's mass as its capacity and its zone's mass flow as its inflow.  A stage's segment is a source at
-  the stage's outlet enthalpy.
-- **Heat exchange** acts on enthalpy: a device adds or removes joules from a segment, and a segment's temperature
-  follows from its state.  Two-phase segments exchange at constant temperature, which is what makes a condenser
-  and an evaporator work.
+  each segment's mass as its capacity, solved backward Euler.  A segment's inflow is interpolated along its zone
+  from the flow into the zone to the flow out of it, so a zone filling or emptying spreads that over its length.  A
+  stage's segment is a source at the stage's outlet enthalpy.
+- **Heat exchange** acts on enthalpy: a device pulls a segment towards its own temperature, and a segment's
+  temperature follows from its state.  The pull is solved implicitly in the advection step, so no exchanger,
+  however strong, takes the gas past the device's temperature, and it is capped at the device's conductance times
+  the temperature difference it finds, so a condenser near its saturation temperature moves no more than its
+  conductance allows.  Two-phase segments exchange at constant temperature, which is what makes a condenser and an
+  evaporator work.
 - **Failures:** a segment above its pipe's rating bursts (`BURST`), one below the gas's freezing point freezes
   (`FROZE`), as in liquid loops.
 
@@ -80,7 +84,9 @@ Pressure stages (`IGasPressureStage`), each the physics of one device:
 - **Compressor:** mass flow = volumetric efficiency x suction density x displacement x speed; isentropic outlet
   enthalpy with an isentropic efficiency.  It draws EU for its shaft work, at a configured joules per EU, and slows
   to what its energy hatches can give.  It doesn't run backwards.  Liquid at its suction (quality below 0.9) is
-  *slugging*: it wears the compressor (maintenance issues) and it pumps less.
+  *slugging*: it wears the compressor (maintenance issues) and it pumps less.  Its high-pressure cutout holds back
+  its flow to keep its discharge zone below 70% of the zone's weakest pipe rating, and stops it at 80% until the
+  zone falls back to 70%.
 - **Expansion valve:** an orifice, `m = C A sqrt(2 rho_in dP)` (choked for vapour), isenthalpic.  Its opening is
   manual (screwdriver) or thermostatic: it opens and closes to hold a set superheat at the outlet of the zone it
   feeds, as a real TXV does.
@@ -133,8 +139,10 @@ temperature, the PHE condenses the gas (air, nitrogen, oxygen, argon, helium, R-
 putting the heat into the loop.  The heat per litre is the same EU-equivalent the PHE already uses for boiling
 those liquids, so boiling and condensing balance and nothing is created from a round trip.
 
-**Coolant Bath on a gas loop** exchanges with the gas as it does with liquid; an evaporating refrigerant at -20 °C
-cools hot ingots quickly.
+**Coolant Bath on a gas loop** runs the gas through coils holding 5% of the bath's volume, so the bath doesn't take
+the loop's whole charge.  The coils exchange with the gas as the bath does with liquid, but take the gas no hotter
+than 50 K past its saturation temperature (or its inlet's, if hotter): the items cool only by what the gas takes
+up.  An evaporating refrigerant at -20 °C cools hot ingots quickly.
 
 **Passages, heaters and degassers.**  A reactor passage on a gas loop exchanges at a small fraction of its liquid
 rate (`gasPassageHeatTransferMultiplier`, 0.02).  A heater works on gas as on liquid.  A degasser passes gas
