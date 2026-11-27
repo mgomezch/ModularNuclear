@@ -40,7 +40,7 @@ public final class CompactStats {
                 row(
                     rows,
                     "ratio",
-                    "%.1f - %.1f",
+                    "%.1f to %.1f",
                     t.builtInRatio,
                     t.builtInRatio * (1.0 + GasStageModels.Compressor.UNLOADING_BAND));
                 row(rows, "displacement", "%.0f m³/s", t.displacement);

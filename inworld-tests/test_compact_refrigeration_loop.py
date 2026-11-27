@@ -31,7 +31,7 @@ CHARGE_L = 90_000
 TANK = ("iron", 3)
 INGOT = "ore:ingotHotKanthal"
 PUMP, COMP, RAD, VALVE, BATH = (12, Y, 0), (9, Y, 0), (6, Y, 0), (3, Y, 0), (0, Y, 0)
-INGOTS = 8
+INGOTS = 24
 OUTPUT = REPO_ROOT / "output" / "compact_refrigeration_loop.json"
 
 

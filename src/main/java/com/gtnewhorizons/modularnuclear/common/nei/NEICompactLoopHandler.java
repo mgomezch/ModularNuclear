@@ -136,7 +136,10 @@ public class NEICompactLoopHandler extends TemplateRecipeHandler {
         if (recipeIndex < 0 || recipeIndex >= arecipes.size()) return;
         if (!(arecipes.get(recipeIndex) instanceof CachedCompactMachine page)) return;
         NEIPalette palette = NEIPalette.current();
-        GuiDraw.drawString(page.stack.item.getDisplayName(), 34, 10, palette.ink, false);
+        // The longest names (a Compact Turbo-Expander's) are wider than the page: scaled down to fit beside the slot
+        String name = page.stack.item.getDisplayName();
+        float scale = Math.min(1.0f, 126.0f / Math.max(1, GuiDraw.getStringWidth(name)));
+        NEIFuelStatsHandler.drawScaledString(name, 34, 10, scale, palette.ink);
         GuiDraw.drawString(
             StatCollector.translateToLocal("modularnuclear.nei.compact.kind." + page.kind.name),
             34,
@@ -147,7 +150,7 @@ public class NEICompactLoopHandler extends TemplateRecipeHandler {
         for (String[] row : page.rows) {
             GuiDraw.drawString(StatCollector.translateToLocal(row[0]), 9, y, palette.label, false);
             int w = GuiDraw.getStringWidth(row[1]);
-            GuiDraw.drawString(row[1], 157 - w, y, palette.ink, false);
+            GuiDraw.drawString(row[1], 156 - w, y, palette.ink, false);
             y += 11;
         }
     }
