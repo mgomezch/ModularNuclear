@@ -58,7 +58,10 @@ Wrinkles:
 (W2) A passive stage (a valve or an expander) passes a flow that follows the pressure difference.  Over a step
      it could pass more than equalizes its two zones and set them oscillating, so the engine caps it at half of
      what would equalize them, from each zone's compliance dm/dP (zoneCompliance, measured in the solve).  A
-     stage never takes more than a quarter of its upstream zone's mass in a step.
+     stage never takes more than half of its upstream zone's mass in a step (MAX_TURNOVER).  The heat a game's
+     machines move (a coolant bath of hot ingots takes tens of megawatts) runs a loop's gas round many times a
+     second, so a tighter limit (a quarter, at first) held a test loop's compressor to a tenth of its
+     displacement.
 
 (W3) A segment new to a charged loop (a pipe added while the loop was stopped) holds no gas yet: it takes the
      loop's mean enthalpy and no mass, and the zone's pressure falls as its gas spreads into it.  The pump then
@@ -118,6 +121,8 @@ public class GasLoopEngine extends CoolantLoopEngine {
     static final double MASS_RELAXATION = 0.5;
     /** Share of its zone's weakest rating a compressor's discharge is held to. See wrinkle (W9) */
     public static final double CUTOUT_FRACTION = 0.85;
+    /** Most of its upstream zone's mass a stage takes in a step. See wrinkle (W2) */
+    static final double MAX_TURNOVER = 0.5;
     /** Discharge pressure (share of the rating) that stops a compressor, and that lets it start again. */
     public static final double CUTOUT_LATCH_FRACTION = 0.9;
     public static final double CUTOUT_RELEASE_FRACTION = 0.8;
@@ -408,6 +413,7 @@ public class GasLoopEngine extends CoolantLoopEngine {
             ctx.downstreamExitSuperheatK = exitSuperheat(down);
             ctx.maxVolumetricFlow = Double.POSITIVE_INFINITY;
             ctx.maxMassFlow = maxMassFlow(k, dt);
+            ctx.downstreamMaxPressure = zoneMaxPressure[down];
             stageImpl[k].computeStage(ctx);
             // See wrinkle (W6)
             double answered = Math.max(0.0, ctx.massFlow);
@@ -538,7 +544,7 @@ public class GasLoopEngine extends CoolantLoopEngine {
     /** Most mass a stage may pass this step. See wrinkles (W2) and (W9) of Note [Gas loop pressure zones] */
     private double maxMassFlow(int k, double dt) {
         int up = stageUpZone[k], down = stageDownZone[k];
-        double limit = 0.25 * zoneMass[up] / dt;
+        double limit = MAX_TURNOVER * zoneMass[up] / dt;
         if (!stageImpl[k].isPassive() && Double.isFinite(zoneMaxPressure[down])) {
             double p = zonePressure[down], pMax = zoneMaxPressure[down];
             if (p >= CUTOUT_LATCH_FRACTION * pMax) stageCutOut[k] = true;

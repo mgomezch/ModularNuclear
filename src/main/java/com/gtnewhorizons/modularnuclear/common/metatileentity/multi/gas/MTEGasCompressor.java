@@ -11,6 +11,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasPressureStage;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasStageModels;
 
@@ -181,8 +182,9 @@ public class MTEGasCompressor extends MTEInlineLoopMachine<MTEGasCompressor> imp
         // Liquid reaching the suction: slugging wears the compressor
         double uncapped = Math.min(m.displacement * speed, c.maxVolumetricFlow)
             * GasStageModels.Compressor.suctionDensity(c);
-        boolean cutout = c.massFlow < 0.95 * uncapped && c.massFlow < c.maxMassFlow * 1.0001
-            && Double.isFinite(c.maxMassFlow);
+        // Held back by the engine's cutout (wrinkle (W9) of Note [Gas loop pressure zones]) near its rating
+        boolean cutout = c.maxMassFlow < 0.95 * uncapped
+            && c.pressureOut > 0.5 * GasLoopEngine.CUTOUT_FRACTION * c.downstreamMaxPressure;
         if (cutout) {
             mStatus = String.format("High-pressure cutout at %.1f bar", c.pressureOut / 1e5);
         } else if (c.in.quality < 0.9 && c.massFlow > 0.0) {

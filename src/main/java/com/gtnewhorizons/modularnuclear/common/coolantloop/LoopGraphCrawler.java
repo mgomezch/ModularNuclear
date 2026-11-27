@@ -51,8 +51,8 @@ import gregtech.api.metatileentity.implementations.MTEFluidPipe;
  */
 public class LoopGraphCrawler {
 
-    /** Share of a coolant bath's fill volume its gas-loop evaporator holds: 20 L of every 1000 L slot. */
-    public static final double BATH_GAS_VOLUME_SHARE = 0.02;
+    /** Share of a coolant bath's fill volume its gas-loop evaporator holds: 50 L of every 1000 L slot. */
+    public static final double BATH_GAS_VOLUME_SHARE = 0.05;
 
     /**
      * Represents the flow configuration of a single pipe block along the crawled loop.

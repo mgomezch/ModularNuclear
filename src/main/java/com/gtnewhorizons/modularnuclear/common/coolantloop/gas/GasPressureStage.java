@@ -28,6 +28,8 @@ public interface GasPressureStage {
         public double downstreamExitSuperheatK;
         /** The most volumetric flow (m^3/s) the stage's pipes carry; infinite when unknown. */
         public double maxVolumetricFlow = Double.POSITIVE_INFINITY;
+        /** The downstream zone's weakest pressure rating, Pa; infinite for none. */
+        public double downstreamMaxPressure = Double.POSITIVE_INFINITY;
         /** The most mass flow (kg/s) the engine lets the stage pass this step. See Note [Gas loop pressure zones] */
         public double maxMassFlow = Double.POSITIVE_INFINITY;
 
