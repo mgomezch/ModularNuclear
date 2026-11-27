@@ -187,6 +187,43 @@ efficiency of 9% (MV) to 23% (LuV), and a built-in pressure ratio that bounds th
 performance.  An ingot holds the same heat in either kind of bath.  A loop's flow is bounded by the gas on its low
 side, so a tier's machines hold as much gas as its flow needs, and its loop's charge grows with it.
 
+### GUIs
+
+The compact machines' GUIs follow GregTech's own one-block machines (Note [Compact machine GUIs] in
+`CompactLoopMachineGui.java` has how).  Those are built in GT5-Unofficial's
+`gregtech.common.gui.modularui.singleblock`, on ModularUI 2, and share these elements:
+
+- **The panel.**  `MTETieredMachineBlockBaseGui` makes a 176 by 166 panel with the machine's name in a tab above
+  it, the player's inventory along the bottom (`createInventoryRow`), and the content area above that.  Every
+  machine with something to put in or take out binds the player's inventory; fluid machines do too, for cells.
+- **The top right corner** (`createTopRightCornerFlow`): a small power switch and a muffler toggle, without labels.
+- **The recipe area** (`MTEBasicMachineBaseGui.createItemRecipeArea`): input slots on the left, a progress bar in
+  the middle and output slots on the right, centred, up to three rows of slots on each side.  Input slots carry a
+  faint overlay of what goes in (an ingot, dust, a cell) and output slots an "out" mark.  The progress bar
+  (`GTProgressWidget`) is a 20 by 18 picture particular to the machine (an arrow, the compressor's narrowing arrow,
+  the bath's circling arrows), filled as the current operation advances; its tooltip names the voltage it needs,
+  and a click on it opens the machine's recipes in NEI.
+- **Fluid slots.**  A machine's fluid input sits in the bottom left corner and its fluid output in the bottom right
+  (`createFluidInputSlot`, `createFluidOutputSlot`); they show the fluid as a filled square, its name and amount
+  in their tooltip, and take or fill a cell held on them.  The boiler shows its water and steam as tall bars.
+- **The bottom corners** (`createBottomLeftCornerFlow`, `createBottomRightCornerFlow`): toggle buttons on the left
+  (auto-output of items and fluids, modes), each a small picture whose tooltip says what it does; the circuit,
+  special and charger slots on the right and at the centre.
+- **The error icon** (`createErrorWidget`): a red picture at the bottom centre, shown only while the machine is
+  stuck (out of power, for instance), with the reason in its tooltip.
+- **No text.**  A one-block machine's GUI shows no numbers on the panel.  What a player wants to know about a
+  running machine is in tooltips, or on the portable scanner.  The exceptions are tanks and buffers, whose GUI is a
+  black screen with the amount stored.
+
+The compact machines map their processes onto these.  The machines the loop only flows through (compressor,
+valve, turbo-expander, radiator) show the loop's gas at their inlet and outlet as two fluid slots with the
+machine's arrow between them; they have no batches, so the arrow runs while the machine works, faster under more
+load.  The bath shows its hot ingots in, the ingots being cooled, the bath arrow for the ingot nearest done and
+the cooled ingots out.  The heat exchanger shows its gas tank, the arrow for its next litre and its liquid tank.
+The pump shows the gas in its tanks, the arrow for its loop's charge and the gas in its loop, with its charge
+setting as a mode button.  Pressures, temperatures, flows and power are in the tooltips of the slots and the
+arrow, and on the scanner.
+
 ## Tests
 
 - Unit: gas properties against reference points, state round trips, isentropic compression, the valve's flash,
