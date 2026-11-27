@@ -25,7 +25,8 @@ it doesn't do on a gas loop is pump: it needs no rotor, and the compressors driv
 Charge.  The pump's fill (mCurrentFillLiters, mRequiredFillLiters) counts litres of the gas fluid, at 0 °C and
 1 atm (GasProperty.massOfLiters).  The charge a loop takes (requiredChargeLiters) follows from its volume and the
 pump's ambient temperature (GasLoopEngine.requiredChargeKg): for a condensing gas, enough for a fraction of the
-loop's volume to be liquid at ambient, and for a permanent gas, enough for a charge pressure.  A screwdriver on the
+loop's volume to be liquid at ambient (10% by default: the high side, often a small part of the loop, has to hold
+that liquid once the compressor pumps the low side down), and for a permanent gas, enough for a charge pressure.  A screwdriver on the
 pump's controller cycles both settings (cycleCharge).  The pump charges a stopped loop at its fill rate, holding
 the loop at equilibrium at the reservoir's temperature as it goes (GasLoopEngine.equilibrate).
 
@@ -41,7 +42,7 @@ final class CoolantPumpGasLoop {
     private CoolantPumpGasLoop() {}
 
     /** Liquid fraction (condensing gases) and charge pressure in bar (permanent gases) the screwdriver cycles. */
-    static final double[] LIQUID_FRACTIONS = { 0.3, 0.2, 0.4, 0.5, 0.1 };
+    static final double[] LIQUID_FRACTIONS = { 0.1, 0.05, 0.2, 0.3, 0.02 };
     static final double[] CHARGE_PRESSURES_BAR = { 10.0, 5.0, 20.0, 40.0, 2.0 };
 
     /**

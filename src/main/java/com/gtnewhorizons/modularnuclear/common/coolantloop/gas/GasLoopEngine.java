@@ -93,6 +93,14 @@ Wrinkles:
      flows and pressures answer each other within a tick and ring with a period of two ticks: the compressor's
      flow follows the suction pressure the valve's last flow left, and the other way round.
 
+(W9) A compressor has a high-pressure cutout: it passes no more than half of what would take its discharge zone
+     to CUTOUT_FRACTION of the zone's weakest pressure rating (zoneMaxPressure): the mass the zone holds at that
+     pressure at its present enthalpies (zoneCutoutMass), less what it holds.  The zone's compliance would not do:
+     a two-phase zone takes mass easily until it is full of liquid, which takes almost none (wrinkle (W2) of Note
+     [The gas model]), and one tick of a compressor pushing into an overcharged high side took a test loop from 14
+     bar to 756.  A loop can still burst, from heat
+     raising its pressure or from a valve or expander passing too much, but not from its compressor alone.
+
 GasLoopEngineTest runs whole vapour-compression and Brayton cycles to steady state and checks mass and energy.
 */
 /** The engine of a gas loop. See Note [Gas loop pressure zones] */
@@ -105,6 +113,8 @@ public class GasLoopEngine extends CoolantLoopEngine {
     static final double FLOW_LAG_SECONDS = 0.2;
     /** How far a step takes each segment's mass towards what its density holds. See wrinkle (W8) */
     static final double MASS_RELAXATION = 0.5;
+    /** Share of its zone's weakest rating a compressor's discharge is held to. See wrinkle (W9) */
+    public static final double CUTOUT_FRACTION = 0.95;
 
     private final GasProperty gas;
     private final Map<LoopId, GasPressureStage> stages = new HashMap<>();
@@ -131,6 +141,7 @@ public class GasLoopEngine extends CoolantLoopEngine {
     private double[] stageShaftPower = new double[0];
     private int[][] downstreams = new int[0][];
     private int[][] zoneOrder = new int[0][];
+    private double[] zoneMaxPressure = new double[0], zoneCutoutMass = new double[0];
 
     // Scratch
     private double[] cap = new double[0], inflow = new double[0], source = new double[0], value = new double[0],
@@ -360,6 +371,10 @@ public class GasLoopEngine extends CoolantLoopEngine {
             for (int i : zoneMembers[z]) m += cap[i];
             zoneMass[z] = m;
             zonePressure[z] = solvePressure(z, m, zonePressure[z]);
+            // What the zone holds at its cutout pressure, at its enthalpies now. See wrinkle (W9)
+            zoneCutoutMass[z] = Double.isFinite(zoneMaxPressure[z])
+                ? massAt(zoneMembers[z], CUTOUT_FRACTION * zoneMaxPressure[z])
+                : Double.POSITIVE_INFINITY;
         }
         for (int i = 0; i < n; i++) {
             gas.state(zonePressure[zoneOf[i]], value[i], st);
@@ -513,10 +528,13 @@ public class GasLoopEngine extends CoolantLoopEngine {
         }
     }
 
-    /** Most mass a stage may pass this step. See wrinkle (W2) of Note [Gas loop pressure zones] */
+    /** Most mass a stage may pass this step. See wrinkles (W2) and (W9) of Note [Gas loop pressure zones] */
     private double maxMassFlow(int k, double dt) {
         int up = stageUpZone[k], down = stageDownZone[k];
         double limit = 0.25 * zoneMass[up] / dt;
+        if (!stageImpl[k].isPassive() && Double.isFinite(zoneMaxPressure[down])) {
+            limit = Math.min(limit, 0.5 * Math.max(0.0, zoneCutoutMass[down] - zoneMass[down]) / dt);
+        }
         if (stageImpl[k].isPassive()) {
             double dp = zonePressure[up] - zonePressure[down];
             if (dp <= 0.0) return 0.0;
@@ -760,6 +778,15 @@ public class GasLoopEngine extends CoolantLoopEngine {
         target = new double[n];
         outflow = new double[n];
         buildFlowOrder(n);
+        zoneMaxPressure = new double[zoneCount];
+        zoneCutoutMass = new double[zoneCount];
+        Arrays.fill(zoneMaxPressure, Double.POSITIVE_INFINITY);
+        for (int i = 0; i < n; i++) {
+            LoopSegment s = segments.get(i);
+            if (s.hasPressureLimit()) {
+                zoneMaxPressure[zoneOf[i]] = Math.min(zoneMaxPressure[zoneOf[i]], s.getMaxPressureBar() * 1e5);
+            }
+        }
         cap = new double[n];
         inflow = new double[n];
         source = new double[n];

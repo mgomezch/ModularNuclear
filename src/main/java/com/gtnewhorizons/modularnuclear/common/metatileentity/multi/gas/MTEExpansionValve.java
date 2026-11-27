@@ -150,7 +150,8 @@ public class MTEExpansionValve extends MTEInlineLoopMachine<MTEExpansionValve> i
             mOpening = 0.0;
         } else if (isThermostatic()) {
             mThermostat.setPointK = SET_POINTS[mMode];
-            if (c.loopRunning) mOpening = mThermostat.opening(c.downstreamExitSuperheatK, c.dt);
+            // Stopped, it bleeds the high side down so the loop equalizes and comes to rest
+            mOpening = c.loopRunning ? mThermostat.opening(c.downstreamExitSuperheatK, c.dt) : 1.0;
         } else {
             mOpening = FIXED_OPENINGS[mMode - SET_POINTS.length];
         }

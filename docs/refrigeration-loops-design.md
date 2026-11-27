@@ -85,8 +85,8 @@ Pressure stages (`IGasPressureStage`), each the physics of one device:
   manual (screwdriver) or thermostatic: it opens and closes to hold a set superheat at the outlet of the zone it
   feeds, as a real TXV does.
 - **Turbo-expander:** a nozzle (choked flow) and an isentropic expansion with an efficiency.  The work goes to a
-  dynamo hatch as EU (times a generator efficiency); with no dynamo, or a full one, it free-wheels: the gas passes
-  without expanding work out, and so without cooling.
+  dynamo hatch as EU (times a generator efficiency), and what a full dynamo can't take is lost in its brake.
+  Disabled, it free-wheels: the gas passes without expanding work out, and so without cooling.
 
 A stopped compressor passes nothing; a valve or expander keeps passing flow, so a stopped loop equalizes.
 

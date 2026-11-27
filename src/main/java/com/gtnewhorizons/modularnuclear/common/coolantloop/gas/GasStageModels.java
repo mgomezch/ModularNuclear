@@ -10,6 +10,7 @@ public final class GasStageModels {
 
     /** Below this pressure difference an orifice's flow is taken as linear in it, so equalization settles. */
     static final double LINEAR_BELOW_PA = 5_000.0;
+    static final double EQUAL_BELOW_PA = 100.0;
 
     /**
      * A compressor: a displacement (m^3/s of suction gas at full speed), a clearance that lowers its volumetric
@@ -33,6 +34,18 @@ public final class GasStageModels {
             return Math.max(0.0, 1.0 - clearance * (Math.pow(ratio, 1.0 / gas.getGamma()) - 1.0));
         }
 
+        /**
+         * Density of what the compressor draws: the vapour's. A compressor's cylinders fill with vapour, and at a wet
+         * suction it draws the vapour's density's worth of the mix (and wears: slugging). Drawing the mix at its own
+         * density would pump a flooded evaporator at nearly the liquid's density, thousands of kilograms a second.
+         */
+        public static double suctionDensity(GasPressureStage.Context c) {
+            if (c.in.phase != GasProperty.Phase.TWO_PHASE && c.in.phase != GasProperty.Phase.LIQUID)
+                return c.in.density;
+            double rhoG = c.pressureIn / (c.gas.getGasConstant() * c.in.saturationTemperatureK);
+            return Math.min(c.in.density, rhoG);
+        }
+
         /** Specific shaft work (J/kg) from the inlet to the outlet pressure. */
         public double specificWork(GasPressureStage.Context c) {
             if (c.pressureOut <= c.pressureIn) return 0.0;
@@ -46,7 +59,7 @@ public final class GasStageModels {
             if (!c.loopRunning || speed <= 0.0) return;
             double ratio = c.pressureOut / c.pressureIn;
             double volume = Math.min(displacement * speed * volumetricEfficiency(c.gas, ratio), c.maxVolumetricFlow);
-            double flow = Math.min(volume * c.in.density, c.maxMassFlow);
+            double flow = Math.min(volume * suctionDensity(c), c.maxMassFlow);
             double w = specificWork(c);
             c.massFlow = flow;
             c.enthalpyOut = c.enthalpyIn + w;
@@ -58,14 +71,15 @@ public final class GasStageModels {
             if (!c.loopRunning) return 0.0;
             double ratio = c.pressureOut / c.pressureIn;
             double volume = Math.min(displacement * volumetricEfficiency(c.gas, ratio), c.maxVolumetricFlow);
-            return volume * c.in.density * specificWork(c);
+            return Math.min(volume * suctionDensity(c), c.maxMassFlow) * specificWork(c);
         }
     }
 
     /** Mass flow (kg/s) through an orifice of effective area (m^2) from the inlet state to the outlet pressure. */
     public static double orificeFlow(GasPressureStage.Context c, double area) {
         double dp = c.pressureIn - c.pressureOut;
-        if (dp <= 0.0 || area <= 0.0) return 0.0;
+        // Below this the zones count as equal: the flow stops, and a stopped loop comes to rest
+        if (dp <= EQUAL_BELOW_PA || area <= 0.0) return 0.0;
         GasProperty.State in = c.in;
         double flow;
         if (in.phase == GasProperty.Phase.VAPOR) {

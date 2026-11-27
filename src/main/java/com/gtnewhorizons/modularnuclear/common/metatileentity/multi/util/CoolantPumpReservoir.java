@@ -451,6 +451,14 @@ public class CoolantPumpReservoir {
             return false;
         }
 
+        // A gas a gas loop runs on. See Note [The pump on a gas loop]
+        if (com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty.get(
+            availableFluid.getFluid()
+                .getName())
+            != null) {
+            return true;
+        }
+
         if (CoolantFluidHelper.isGaseousFluid(availableFluid)) {
             pump.setLoopStatusKey(
                 "modularnuclear.coolant_loop.pump.status.refuse_gas",

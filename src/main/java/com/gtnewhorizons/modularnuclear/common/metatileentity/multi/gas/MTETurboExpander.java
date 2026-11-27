@@ -33,8 +33,9 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 
 /**
  * Turbo-Expander: the pressure stage of a Brayton loop. The gas expands through its nozzles and turns its turbine,
- * which cools it; the work goes out of its dynamo hatch as EU. With nowhere for the EU to go it free-wheels and the
- * gas passes through without cooling. A screwdriver sets its nozzle opening. See Note [Gas loop machines]
+ * which cools it; the work goes out of its dynamo hatch as EU, and what the dynamo has no room for is lost in the
+ * turbine's brake. Disabled, it free-wheels: the gas passes through without expanding work out, so without cooling.
+ * A screwdriver sets its nozzle opening. See Note [Gas loop machines]
  */
 public class MTETurboExpander extends MTEInlineLoopMachine<MTETurboExpander> implements GasPressureStage {
 
@@ -159,8 +160,8 @@ public class MTETurboExpander extends MTEInlineLoopMachine<MTETurboExpander> imp
         checkMaintenance();
         double eta = GasMachineParts.EXPANDER_ISENTROPIC_EFFICIENCY * Math.max(0.3, getEfficiencyFactor());
         GasStageModels.Expander model = new GasStageModels.Expander(getNozzleArea(), eta);
-        // Loaded only while working and the dynamo has room for the step's EU
-        boolean loaded = isAllowedToWork() && c.loopRunning && dynamoRoom() > 0L;
+        // Loaded while it works: its brake takes what the dynamo can't
+        boolean loaded = isAllowedToWork() && c.loopRunning;
         model.compute(c, loaded);
         double watts = -c.shaftPowerWatts;
         double eu = watts * GasMachineParts.EXPANDER_GENERATOR_EFFICIENCY / (GasMachineParts.SHAFT_JOULES_PER_EU * 20.0)
@@ -203,7 +204,7 @@ public class MTETurboExpander extends MTEInlineLoopMachine<MTETurboExpander> imp
     public List<String> getReadoutLines() {
         List<String> l = new ArrayList<>();
         l.add(String.format("Nozzles: %.0f%% open, %.4f m²", NOZZLE_OPENINGS[mNozzle] * 100.0, getNozzleArea()));
-        l.add(mLoaded ? "Turbine loaded: expanding" : "Free-wheeling: no room for EU, or stopped");
+        l.add(mLoaded ? "Turbine loaded: expanding" : "Free-wheeling: disabled or stopped");
         l.add(String.format("%.2f bar -> %.2f bar", mLastInBar, mLastOutBar));
         l.add(String.format("Mass flow: %.1f kg/s", mLastMassFlow));
         l.add(String.format("Work: %sW, %d EU/t out", GasMachineParts.si(mLastWorkWatts), mLastEuPerTick));

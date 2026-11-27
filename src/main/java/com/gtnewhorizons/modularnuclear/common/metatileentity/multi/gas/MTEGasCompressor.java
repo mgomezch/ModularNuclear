@@ -179,7 +179,13 @@ public class MTEGasCompressor extends MTEInlineLoopMachine<MTEGasCompressor> imp
         mLastEuPerTick = whole;
         base.setActive(c.massFlow > 0.0);
         // Liquid reaching the suction: slugging wears the compressor
-        if (c.in.quality < 0.9 && c.massFlow > 0.0) {
+        double uncapped = Math.min(m.displacement * speed, c.maxVolumetricFlow)
+            * GasStageModels.Compressor.suctionDensity(c);
+        boolean cutout = c.massFlow < 0.95 * uncapped && c.massFlow < c.maxMassFlow * 1.0001
+            && Double.isFinite(c.maxMassFlow);
+        if (cutout) {
+            mStatus = String.format("High-pressure cutout at %.1f bar", c.pressureOut / 1e5);
+        } else if (c.in.quality < 0.9 && c.massFlow > 0.0) {
             mSluggingTicks++;
             if (mSluggingTicks % 200 == 0) causeMaintenanceIssue();
             mStatus = String.format("Liquid slugging (%.0f%% vapour at suction)", c.in.quality * 100.0);
