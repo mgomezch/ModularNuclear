@@ -22,6 +22,15 @@ public interface ICompactLoopDevice extends ICoolantLoopDevice, ILoopPortSides {
         return side == getLoopInletSide() || side == getLoopOutletSide();
     }
 
+    /**
+     * A second pass of a loop through the same block, entering through another side, or null if the device has
+     * none. It is a loop device of its own, with its own id and segment (a compact heat exchanger's, on the same
+     * loop as a recuperator or on another).
+     */
+    default ICompactLoopDevice getSecondPass() {
+        return null;
+    }
+
     /** Whether a loop can run through the device now. */
     boolean isLoopReady();
 

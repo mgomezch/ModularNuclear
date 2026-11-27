@@ -1080,7 +1080,7 @@ The compact loop machines are one-block versions of the gas loop's machines, in 
 - It runs **gas loops only**.
 - It runs loops up to its tier's volume of pipes and machines, and the pipes on its two sides burst at its own rating if that is lower than theirs.
 - It fills and drains at a fraction of a multiblock pump's rate, and draws a quarter of an ampere of its tier while it does.
-- Its charge settings are half the multiblock's by default: 5, 3, 10, 20 and 2% liquid (a screwdriver cycles them; sneak to turn the loop's direction instead).  A loop runs on the smaller charge at about a tenth less efficiency.
+- Its charge settings are smaller than the multiblock's: 5, 3, 10, 20 and 2% liquid for a condensing gas, and for a permanent gas a quarter, an eighth, three eighths, a half and a sixteenth of its own pressure rating (4 bar by default at MV).  A screwdriver cycles them; sneak to turn the loop's direction instead.  A refrigerant loop runs on the smaller charge at about a tenth less efficiency, and a Brayton loop needs the room under its rating.
 - **Stopped** (soft mallet, machine controller cover), it stops the compressors, waits for the loop to come to rest and takes the whole charge back into its tanks.  Stop it before rebuilding its loop or moving it.
 
 **Compact Gas Compressor.** Works with one ampere of its tier.  Three things set it apart from the multiblock compressor.  Its drive gives its shaft only a small share $\eta_d$ of its EU.  It has a **built-in pressure ratio** $r_b$: it compresses its gas at least that far whatever the loop's pressures, the excess going into the gas as heat, so a warm evaporator does not make the loop cheap to run.  And past $r_b$ it slows, stopping at $1.5\,r_b$, so a lightly loaded loop idles instead of pumping its evaporator down to a vacuum.  Liquid at its suction stays in its accumulator: it wears nothing.  The high-pressure cutout of §9.11 applies.
@@ -1093,14 +1093,19 @@ The compact loop machines are one-block versions of the gas loop's machines, in 
 
 **Compact Coolant Bath.** Cools hot ingots, a few at a time, on a gas loop.  A right click with hot ingots puts them in; a right click with anything else takes the cooled ingots out; pipes, hoppers and conveyors put in and take out on any side but the front.  An ingot holds the same heat as in the multiblock Coolant Bath (§9.7), so compact and multiblock machines mix freely on one loop.  Each ingot takes about one and a half times the Vacuum Freezer's time for it.
 
-**Compact Heat Exchanger.** Liquefies nitrogen, oxygen, air or helium against a loop colder than the cryogen's boiling point less the approach temperature, as a PHE does (§9.11): it takes the gas in and gives the liquid out on any side but the front and the loop's two.  That takes a Brayton loop with a Compact Turbo-Expander.
+**Compact Heat Exchanger.** Does two of a PHE's jobs on a gas loop (§9.11):
+
+- **Liquefier.** Against a loop colder than a cryogen's boiling point less the approach temperature it liquefies nitrogen, oxygen, air or helium: it takes the gas in and gives the liquid out through its back, or its top and bottom.
+- **Recuperator.** It takes a second pass of a loop through its other free axis, from bottom to top when the first pass runs across its front, and moves heat from the hotter pass to the colder as a counterflow exchanger.  Both passes may be of one loop, or of two.
+
+A Brayton loop cold enough to liquefy nitrogen needs a Compact Turbo-Expander and two or more recuperators in a row: compressor → radiator → recuperators' first passes → expander → liquefier → recuperators' second passes, in reverse order → pump.
 
 | | MV | HV | EV | IV | LuV |
 | :-- | --: | --: | --: | --: | --: |
 | Works with (EU/t) | 120 | 480 | 1,920 | 7,680 | 30,720 |
 | Bursts above (bar) | 16 | 32 | 64 | 128 | 256 |
 | Holds of the loop's gas (L) | 250 | 1,667 | 8,444 | 37,333 | 163,556 |
-| Pump: largest loop (L) | 2,000 | 13,333 | 67,556 | 298,667 | 1,308,444 |
+| Pump: largest loop (L) | 3,000 | 20,000 | 101,333 | 448,000 | 1,962,667 |
 | Pump: fill rate | 10% | 15% | 20% | 30% | 40% |
 | Compressor: drive efficiency $\eta_d$ | 9% | 15% | 19% | 21% | 23% |
 | Compressor: shaft power | 6.1 MW | 40.7 MW | 206 MW | 911 MW | 3.99 GW |
@@ -1108,6 +1113,7 @@ The compact loop machines are one-block versions of the gas loop's machines, in 
 | Compressor: built-in ratio $r_b$ | 2.4 | 2.3 | 2.2 | 2.1 | 2.0 |
 | Expander: isentropic efficiency | 55% | 62% | 68% | 73% | 77% |
 | Radiator: conductance (MW/K) | 2.1 | 9.6 | 43 | 192 | 845 |
+| Heat exchanger: conductance (MW/K) | 0.3 | 2.0 | 10 | 45 | 196 |
 | Radiator: fan at full speed (EU/t) | 15 | 60 | 240 | 960 | 3,840 |
 | Bath: ingots at a time | 2 | 3 | 4 | 6 | 8 |
 | Loop against the Vacuum Freezer, EU per ingot | 1.0× | 1.7× | 2.3× | 2.8× | 2.8× |

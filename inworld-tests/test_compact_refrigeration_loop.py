@@ -28,6 +28,8 @@ Y = 5
 TIER = "MV"
 FLUID = "r134a"
 CHARGE_L = 90_000
+TANK = ("iron", 3)
+INGOT = "ore:ingotHotKanthal"
 PUMP, COMP, RAD, VALVE, BATH = (12, Y, 0), (9, Y, 0), (6, Y, 0), (3, Y, 0), (0, Y, 0)
 INGOTS = 8
 OUTPUT = REPO_ROOT / "output" / "compact_refrigeration_loop.json"
@@ -36,11 +38,11 @@ OUTPUT = REPO_ROOT / "output" / "compact_refrigeration_loop.json"
 def build(h: HarnessClient):
     h.clear_area(-12, Y - 1, -12, 24, Y + 10, 12)
     h.fill_area(-10, Y - 1, -10, 22, Y - 1, 10, "stone", 0)
-    pump = C.place_pump(h, TIER, PUMP, "iron", 3, FLUID, CHARGE_L)
+    pump = C.place_pump(h, TIER, PUMP, *TANK, FLUID, CHARGE_L)
     row = [pump, C.place(h, "compressor", TIER, COMP), C.place(h, "radiator", TIER, RAD),
            C.place(h, "valve", TIER, VALVE, powered=False), C.place(h, "bath", TIER, BATH, powered=False)]
     C.connect_row(h, C.pipe("STEEL", "NORMAL"), row, Y)
-    h.set_container_slot(*BATH, 0, "ore:ingotHotKanthal", INGOTS, 0)
+    h.set_container_slot(*BATH, 0, INGOT, INGOTS, 0)
     print("[+] Built compact pump, compressor, radiator, valve and bath")
 
 

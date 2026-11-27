@@ -15,9 +15,13 @@ import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData.PHEData.SecondaryCoolantEntry;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ICompactLoopDevice;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.SegmentHeat;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.ICoolantPumpHost;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.gas.GasMachineParts;
 import com.gtnewhorizons.modularnuclear.common.util.FreezerRecipeEnergy;
 
@@ -40,9 +44,20 @@ takes the heat a litre boiling in a PHE gives off: the vacuum freezer's energy f
 (FreezerRecipeEnergy.applyTo), so compact and multiblock exchangers price a litre alike.  Heat short of a litre
 stays in mHeatJoules for the next, as PheGasModes.carriedHeat does for a PHE's batches.
 
+Recuperator.  The exchanger takes a second pass of a loop through its other free axis (SecondPass, a loop device
+of its own, as a PHE's second pair of hatches is: PheSecondSide): from bottom to top if the first pass runs
+across, from left to right if the first runs up or down.  With gas flowing through both it moves heat from the
+hotter pass to the colder as a counterflow exchanger (SegmentHeat.counterflow) and liquefies nothing.  Both passes
+of one Brayton loop through it make its recuperator; several in a row make a better one.  The passes may also be
+of two loops.
+
 Which gases: the PHE's own table (devices.yaml secondaryCoolants with an outputGasName): nitrogen, oxygen, air
-and helium.  Cooling them takes a permanent-gas loop with a Compact Turbo-Expander; a refrigerant loop does not
-get cold enough.
+and helium.  Cooling them takes a permanent-gas loop with a Compact Turbo-Expander and a recuperator; a
+refrigerant loop does not get cold enough.
+
+  (W1) After a load the second pass is not bound again with the loop's other devices: only the block is saved
+       (CoolantPumpNbt.nodePosition), and LoopDevices.at finds the block's first pass there.  The pump's next
+       scheduled crawl, within ten seconds, binds it; until then the recuperator exchanges nothing.
 */
 /** Compact Heat Exchanger. See Note [The compact heat exchanger] and Note [Compact loop machines] */
 public class MTECompactExchanger extends MTECompactLoopMachine {
@@ -54,6 +69,99 @@ public class MTECompactExchanger extends MTECompactLoopMachine {
     private long mLitersMade = 0L;
     private Fluid mMatchedGas = null;
     private SecondaryCoolantEntry mMatched = null;
+    private final SecondPass mSecond = new SecondPass();
+    private double mLastRecuperatedWatts = 0.0;
+
+    /** The second pass of a loop through the exchanger. See Note [The compact heat exchanger] */
+    public final class SecondPass implements ICompactLoopDevice {
+
+        ICoolantLoopPump pump;
+        LoopSegment segment;
+        long lastTick = Long.MIN_VALUE;
+
+        @Override
+        public String getDeviceId() {
+            return MTECompactExchanger.this.getDeviceId() + "_b";
+        }
+
+        /** Across the first pass: bottom to top, or left to right if the first pass is the vertical one. */
+        @Override
+        public ForgeDirection getLoopInletSide() {
+            ForgeDirection first = MTECompactExchanger.this.getLoopInletSide();
+            if (first.offsetY == 0) return ForgeDirection.DOWN;
+            IGregTechTileEntity base = getBaseMetaTileEntity();
+            return flowChoices(base != null ? base.getFrontFacing() : ForgeDirection.NORTH)[0];
+        }
+
+        @Override
+        public boolean isLoopReady() {
+            return MTECompactExchanger.this.isLoopReady();
+        }
+
+        @Override
+        public double getLoopVolumeM3() {
+            return MTECompactExchanger.this.getLoopVolumeM3();
+        }
+
+        @Override
+        public double getLoopMaxPressureBar() {
+            return MTECompactExchanger.this.getLoopMaxPressureBar();
+        }
+
+        @Override
+        public double getMinorLossK() {
+            return MTECompactExchanger.this.getMinorLossK();
+        }
+
+        @Override
+        public double getDeviceTemperatureCelsius() {
+            return segment != null ? segment.getCurrentTemperatureCelsius() : 20.0;
+        }
+
+        @Override
+        public long getFillVolumeLiters() {
+            return MTECompactExchanger.this.getFillVolumeLiters();
+        }
+
+        @Override
+        public void setLoopPump(ICoolantLoopPump pump) {
+            this.pump = pump;
+            if (pump == null) segment = null;
+        }
+
+        @Override
+        public void processThermalExchange(double flowM3s, double dt, CoolantFluidProperty fluid, LoopSegment segment) {
+            this.segment = segment;
+            IGregTechTileEntity base = getBaseMetaTileEntity();
+            if (base != null) lastTick = base.getTimer();
+        }
+
+        /** The gas of the loop this pass is on, or null. */
+        GasProperty gas() {
+            return pump instanceof ICoolantPumpHost p && p.getEngine() instanceof GasLoopEngine g ? g.getGas() : null;
+        }
+
+        /** Whether gas flowed through this pass within the last two ticks. */
+        boolean flowing() {
+            IGregTechTileEntity base = getBaseMetaTileEntity();
+            return base != null && segment != null
+                && segment.holdsGas()
+                && base.getTimer() - lastTick <= 2
+                && segment.getGasMassFlow() > 0.0;
+        }
+    }
+
+    @Override
+    public ICompactLoopDevice getSecondPass() {
+        return mSecond;
+    }
+
+    /** Pipes join it on both passes' sides. */
+    @Override
+    public boolean isLoopPortSide(ForgeDirection side) {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return base == null || side != base.getFrontFacing() && side != base.getBackFacing();
+    }
 
     public MTECompactExchanger(int aID, String aName, String aNameRegional, int aTier) {
         super(aID, aName, aNameRegional, aTier, 0);
@@ -123,9 +231,12 @@ public class MTECompactExchanger extends MTECompactLoopMachine {
         return mMatched;
     }
 
+    /** Fluids go in and out through its back, and through the second pass's sides while no loop uses them. */
     private boolean fluidSide(ForgeDirection side) {
         IGregTechTileEntity base = getBaseMetaTileEntity();
-        return base != null && side != base.getFrontFacing() && !isLoopPortSide(side);
+        if (base == null || side == base.getFrontFacing()) return false;
+        ForgeDirection first = getLoopInletSide();
+        return side != first && side != first.getOpposite();
     }
 
     @Override
@@ -179,8 +290,17 @@ public class MTECompactExchanger extends MTECompactLoopMachine {
         if (segment == null || base == null) return;
         GasProperty gas = gas();
         SecondaryCoolantEntry cryogen = matched();
+        mLastRecuperatedWatts = 0.0;
         if (gas == null || !segment.holdsGas()) {
             mStatus = "Needs a gas loop";
+        } else if (mSecond.flowing() && mSecond.gas() != null && segment.getGasMassFlow() > 0.0) {
+            // Recuperator: heat from the hotter pass to the colder
+            double moved = SegmentHeat
+                .counterflow(gas, segment, mSecond.gas(), mSecond.segment, tier().exchangerConductance, dt);
+            mLastRecuperatedWatts = Math.abs(moved) / dt;
+            mStatus = "Exchanging between its two passes";
+            base.setActive(true);
+            return;
         } else if (cryogen == null) {
             mStatus = "No gas to liquefy";
         } else if (segment.getGasMassFlow() <= 0.0) {
@@ -233,6 +353,13 @@ public class MTECompactExchanger extends MTECompactLoopMachine {
                 GasMachineParts.si(mLastHeatWatts),
                 mLitersMade,
                 mMatched != null ? 100.0 * mHeatJoules / Math.max(1.0, mMatched.latentHeat()) : 0.0));
+        if (mSecond.segment != null) {
+            l.add(
+                String.format(
+                    "Second pass: %.1f °C, %sW exchanged",
+                    mSecond.segment.getCurrentTemperatureCelsius(),
+                    GasMachineParts.si(mLastRecuperatedWatts)));
+        }
         l.add(String.format("Gas: %s", describe(mGasTank)));
         l.add(String.format("Liquid: %s", describe(mLiquidTank)));
     }

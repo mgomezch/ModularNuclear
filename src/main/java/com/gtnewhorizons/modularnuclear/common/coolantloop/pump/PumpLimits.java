@@ -8,7 +8,8 @@ public final class PumpLimits {
         Double.MAX_VALUE,
         1.0,
         false,
-        CoolantPumpGasLoop.LIQUID_FRACTIONS);
+        CoolantPumpGasLoop.LIQUID_FRACTIONS,
+        CoolantPumpGasLoop.CHARGE_PRESSURES_BAR);
 
     /** The largest loop the pump runs, in litres of pipe and device volume. */
     public final double maxLoopVolumeLiters;
@@ -20,14 +21,16 @@ public final class PumpLimits {
     public final boolean gasOnly;
     /**
      * The shares of a condensing gas loop's volume that are liquid at ambient under each charge setting, the first
-     * being the default. Their number is that of CoolantPumpGasLoop.CHARGE_PRESSURES_BAR, which a screwdriver cycles
-     * with them.
+     * being the default. A screwdriver cycles them together with chargePressuresBar, which has as many.
      */
     public final double[] liquidFractions;
+    /** The pressures a permanent gas loop is charged to at ambient under each charge setting, bar. */
+    public final double[] chargePressuresBar;
 
     public PumpLimits(double maxLoopVolumeLiters, double maxPressureBar, double fillRateFactor, boolean gasOnly,
-        double[] liquidFractions) {
+        double[] liquidFractions, double[] chargePressuresBar) {
         this.liquidFractions = liquidFractions;
+        this.chargePressuresBar = chargePressuresBar;
         this.maxLoopVolumeLiters = maxLoopVolumeLiters;
         this.maxPressureBar = maxPressureBar;
         this.fillRateFactor = fillRateFactor;

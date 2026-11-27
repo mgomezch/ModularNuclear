@@ -1617,9 +1617,15 @@ public class LoopGraphCrawler {
 
         /** A one-block loop device: the loop runs through it from its inlet side to the opposite side. */
         private Visit visitCompactDevice(FrontierStep step, TileEntity te) {
-            if (!(te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof ICompactLoopDevice dev)) {
+            if (!(te instanceof IGregTechTileEntity gte
+                && gte.getMetaTileEntity() instanceof ICompactLoopDevice block)) {
                 return Visit.FALL_THROUGH;
             }
+            // The pass the loop is entering: the block's own, or its second
+            ICompactLoopDevice second = block.getSecondPass();
+            boolean secondPass = second != null && step.entrySide != block.getLoopInletSide()
+                && step.entrySide == second.getLoopInletSide();
+            ICompactLoopDevice dev = secondPass ? second : block;
             if (!dev.isLoopReady()) {
                 finishWithFailure("modularnuclear.coolant_loop.crawler.device_unformed", step.x, step.y, step.z);
                 return Visit.STOP;
@@ -1628,8 +1634,10 @@ public class LoopGraphCrawler {
                 finishWithFailure("modularnuclear.coolant_loop.crawler.device_output", step.x, step.y, step.z);
                 return Visit.STOP;
             }
-            BlockPosCoord devCoord = new BlockPosCoord(step.x, step.y, step.z);
-            if (!visitedPipeAndDevicePositions.add(devCoord)) {
+            // A block is visited once for each of its passes
+            boolean seen = devices.contains(dev);
+            if (!secondPass) seen |= !visitedPipeAndDevicePositions.add(new BlockPosCoord(step.x, step.y, step.z));
+            if (seen) {
                 finishWithFailure(
                     "modularnuclear.coolant_loop.crawler.device_merge_needs_manifold",
                     step.x,

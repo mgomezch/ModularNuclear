@@ -184,7 +184,8 @@ public class MTECompactLoopPump extends MTETieredMachineBlock implements ICoolan
                 t.maxPressureBar,
                 t.fillRateFactor,
                 true,
-                CompactTier.LIQUID_FRACTIONS);
+                CompactTier.LIQUID_FRACTIONS,
+                t.chargePressuresBar());
         }
         return mLimits;
     }

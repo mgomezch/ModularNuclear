@@ -72,8 +72,8 @@ public final class CompactTier {
         this.radiatorFanEu = Math.max(1L, euPerTick / 8L);
         this.radiatorConductance = radiatorWPerKPerEu * radiatorFanEu;
         this.bathSlots = bathSlots;
-        this.exchangerConductance = 0.05e6 * scale;
-        this.maxLoopVolumeLiters = 8000.0 * volumeM3;
+        this.exchangerConductance = 0.3e6 * scale;
+        this.maxLoopVolumeLiters = 12000.0 * volumeM3;
         this.fillRateFactor = fillRateFactor;
     }
 
@@ -90,6 +90,19 @@ public final class CompactTier {
      * loop runs on less at a tenth or so less efficiency.
      */
     public static final double[] LIQUID_FRACTIONS = { 0.05, 0.03, 0.1, 0.2, 0.02 };
+
+    /**
+     * The charge settings of a compact pump for a permanent gas, bar at ambient: shares of its tier's rating, a
+     * quarter by default. A Brayton loop's compressor raises the high side to two or three times the charge, and its
+     * cutout holds it at 70% of the rating: charged to a multiblock pump's 10 bar, an MV loop has no room to work.
+     */
+    public double[] chargePressuresBar() {
+        double[] bar = new double[CHARGE_SHARES.length];
+        for (int i = 0; i < bar.length; i++) bar[i] = CHARGE_SHARES[i] * maxPressureBar;
+        return bar;
+    }
+
+    private static final double[] CHARGE_SHARES = { 0.25, 0.125, 0.375, 0.5, 0.0625 };
 
     /** The loop's temperature above ambient at which a radiator's fan reaches full speed, K. */
     public static final double RADIATOR_FULL_FAN_K = 6.0;
