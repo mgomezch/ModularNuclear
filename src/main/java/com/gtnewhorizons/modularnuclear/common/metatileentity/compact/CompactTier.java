@@ -66,7 +66,7 @@ public final class CompactTier {
         double scale = Math.pow(4.0, tier - FIRST) * driveEfficiency / TIER_ZERO_DRIVE;
         this.volumeM3 = 0.25 * scale;
         this.displacement = 25.0 * scale;
-        this.valveArea = 0.01 * scale;
+        this.valveArea = 0.03 * scale;
         this.expanderNozzle = 0.004 * scale;
         this.expanderEfficiency = expanderEfficiency;
         this.radiatorFanEu = Math.max(1L, euPerTick / 8L);

@@ -160,8 +160,12 @@ public class MTECompactBath extends MTECompactLoopMachine {
         return super.onRightclick(base, player);
     }
 
-    /** Moves ingots from IN into free working slots, and cooled ones to OUT. */
+    /**
+     * Moves cooled ingots to OUT, and one ingot from IN into a free working slot: one at a time, half a second
+     * apart, so the slots' ingots are at different temperatures and the loop's load is steadier than a batch's.
+     */
     private void moveItems() {
+        boolean loaded = false;
         for (int i = 0; i < mSlots.length; i++) {
             CoolantBathSlot slot = mSlots[i];
             if (slot != null && !slot.isEmpty() && slot.isAutoEjectReady()) {
@@ -179,12 +183,13 @@ public class MTECompactBath extends MTECompactLoopMachine {
                 mInventory[FIRST_WORK + i] = null;
                 mCooledItems++;
             }
-            if ((mSlots[i] == null || mSlots[i].isEmpty()) && mInventory[IN] != null) {
+            if (!loaded && (mSlots[i] == null || mSlots[i].isEmpty()) && mInventory[IN] != null) {
                 ItemStack one = mInventory[IN].copy();
                 one.stackSize = 1;
                 double coolant = mBoundSegment != null ? mBoundSegment.getCurrentTemperatureCelsius() : 20.0;
                 CoolantBathSlot next = newSlot(one, coolant);
                 if (next == null) continue;
+                loaded = true;
                 mSlots[i] = next;
                 mInventory[FIRST_WORK + i] = one;
                 if (--mInventory[IN].stackSize <= 0) mInventory[IN] = null;
