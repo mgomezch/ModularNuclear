@@ -23,6 +23,7 @@ public class CoolantLoopRecipes {
     public static void init() {
         registerCraftingRecipes();
         registerAssemblerRecipes();
+        RefrigerantRecipes.init();
     }
 
     private static void registerCraftingRecipes() {
