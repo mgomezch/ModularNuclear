@@ -1,4 +1,4 @@
-package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
+package com.gtnewhorizons.modularnuclear.common.coolantloop.pump;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,6 +16,7 @@ import net.minecraftforge.fluids.FluidStack;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 
@@ -31,37 +32,37 @@ final class CoolantPumpFluidSafety {
      * Refuses liquid fuel (which destroys the impeller), plain water, gases, and lava outside the Nether. Returns
      * CARRY_ON to carry on with the step.
      */
-    static MTECoolantPump.Step refuseUnsuitableFluid(MTECoolantPump pump, FluidStack reservoirFluid) {
+    static CoolantPumpCore.Step refuseUnsuitableFluid(CoolantPumpCore pump, FluidStack reservoirFluid) {
         if (pump.mCurrentFillLiters <= 0 && pump.getTotalCoolantLiters() <= 0) {
             // Nothing in the tank or the loop: the pump waits for coolant
-            pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+            pump.mLoopState = CoolantPumpCore.LoopState.STOPPED;
             pump.mEngine.setPumpPowered(false);
             pump.mEngine.setPumpMechanicalPowerWatts(0.0);
             pump.mEngine.setBraking(false);
             pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.tank_empty");
-            return MTECoolantPump.Step.DONE;
+            return CoolantPumpCore.Step.DONE;
         }
         // Coolant in the tank: the pump starts only on a fluid it can tell is a loop coolant
         if (pump.getTotalCoolantLiters() > 0 && (reservoirFluid == null || reservoirFluid.getFluid() == null)) {
             return refuse(pump, "modularnuclear.coolant_loop.pump.status.reservoir_unknown_fluid");
         }
         if (reservoirFluid != null && reservoirFluid.getFluid() != null) {
-            if (pump.isLiquidNuclearFuel(reservoirFluid)) {
+            if (CoolantFluidHelper.isLiquidNuclearFuel(reservoirFluid)) {
                 pump.failOnLiquidNuclearFuel(
                     reservoirFluid.getFluid()
                         .getName());
-                return MTECoolantPump.Step.of(pump.stepCoastingAndCheckRupture());
+                return CoolantPumpCore.Step.of(pump.stepCoastingAndCheckRupture());
             }
-            if (pump.isPlainRegularWater(reservoirFluid)) {
-                pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+            if (CoolantFluidHelper.isPlainRegularWater(reservoirFluid)) {
+                pump.mLoopState = CoolantPumpCore.LoopState.STOPPED;
                 pump.mEngine.setPumpPowered(false);
                 pump.mEngine.setPumpMechanicalPowerWatts(0.0);
                 pump.mEngine.setBraking(false);
                 pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.refuse_water");
-                return MTECoolantPump.Step.DONE;
+                return CoolantPumpCore.Step.DONE;
             }
-            if (pump.isGaseousFluid(reservoirFluid)) {
-                pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+            if (CoolantFluidHelper.isGaseousFluid(reservoirFluid)) {
+                pump.mLoopState = CoolantPumpCore.LoopState.STOPPED;
                 pump.mEngine.setPumpPowered(false);
                 pump.mEngine.setPumpMechanicalPowerWatts(0.0);
                 pump.mEngine.setBraking(false);
@@ -69,49 +70,49 @@ final class CoolantPumpFluidSafety {
                     "modularnuclear.coolant_loop.pump.status.refuse_gas",
                     reservoirFluid.getFluid()
                         .getName());
-                return MTECoolantPump.Step.DONE;
+                return CoolantPumpCore.Step.DONE;
             }
-            if (pump.isLava(reservoirFluid)) {
+            if (CoolantFluidHelper.isLava(reservoirFluid)) {
                 World world = pump.getBaseMetaTileEntity() != null ? pump.getBaseMetaTileEntity()
                     .getWorld() : null;
-                if (!pump.isNetherWorld(world)) {
-                    pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+                if (!CoolantFluidHelper.isNetherWorld(world)) {
+                    pump.mLoopState = CoolantPumpCore.LoopState.STOPPED;
                     pump.mEngine.setPumpPowered(false);
                     pump.mEngine.setPumpMechanicalPowerWatts(0.0);
                     pump.mEngine.setBraking(false);
                     pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.refuse_lava");
-                    return MTECoolantPump.Step.DONE;
+                    return CoolantPumpCore.Step.DONE;
                 }
             }
         } else if (pump.mEngine.getFluid() != null) {
-            if (pump.isLiquidNuclearFuel(
+            if (CoolantFluidHelper.isLiquidNuclearFuel(
                 pump.mEngine.getFluid()
                     .getFluidName())) {
                 pump.failOnLiquidNuclearFuel(
                     pump.mEngine.getFluid()
                         .getFluidName());
-                return MTECoolantPump.Step.of(pump.stepCoastingAndCheckRupture());
+                return CoolantPumpCore.Step.of(pump.stepCoastingAndCheckRupture());
             }
             if (pump.mEngine.getFluid()
                 .isPlainWater()) {
-                pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+                pump.mLoopState = CoolantPumpCore.LoopState.STOPPED;
                 pump.mEngine.setPumpPowered(false);
                 pump.mEngine.setPumpMechanicalPowerWatts(0.0);
                 pump.mEngine.setBraking(false);
                 pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.refuse_water");
-                return MTECoolantPump.Step.DONE;
+                return CoolantPumpCore.Step.DONE;
             }
             if (pump.mEngine.getFluid()
                 .isLava()) {
                 World world = pump.getBaseMetaTileEntity() != null ? pump.getBaseMetaTileEntity()
                     .getWorld() : null;
-                if (!pump.isNetherWorld(world)) {
-                    pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+                if (!CoolantFluidHelper.isNetherWorld(world)) {
+                    pump.mLoopState = CoolantPumpCore.LoopState.STOPPED;
                     pump.mEngine.setPumpPowered(false);
                     pump.mEngine.setPumpMechanicalPowerWatts(0.0);
                     pump.mEngine.setBraking(false);
                     pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.refuse_lava");
-                    return MTECoolantPump.Step.DONE;
+                    return CoolantPumpCore.Step.DONE;
                 }
             }
         }
@@ -125,20 +126,20 @@ final class CoolantPumpFluidSafety {
                 reservoirFluid.getFluid()
                     .getName());
         }
-        return MTECoolantPump.Step.CARRY_ON;
+        return CoolantPumpCore.Step.CARRY_ON;
     }
 
     /** Stops the pump with a status saying why it will not start. */
-    private static MTECoolantPump.Step refuse(MTECoolantPump pump, String statusKey, Object... args) {
-        pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+    private static CoolantPumpCore.Step refuse(CoolantPumpCore pump, String statusKey, Object... args) {
+        pump.mLoopState = CoolantPumpCore.LoopState.STOPPED;
         pump.mEngine.setPumpPowered(false);
         pump.mEngine.setPumpMechanicalPowerWatts(0.0);
         pump.mEngine.setBraking(false);
         pump.setLoopStatusKey(statusKey, args);
-        return MTECoolantPump.Step.DONE;
+        return CoolantPumpCore.Step.DONE;
     }
 
-    static void spillCoolantFluid(MTECoolantPump pump, World world, LoopSegment rupturedSegment) {
+    static void spillCoolantFluid(CoolantPumpCore pump, World world, LoopSegment rupturedSegment) {
         if (world == null || world.isRemote) {
             return;
         }

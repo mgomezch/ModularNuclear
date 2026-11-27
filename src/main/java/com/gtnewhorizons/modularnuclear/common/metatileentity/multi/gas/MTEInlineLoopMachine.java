@@ -69,7 +69,7 @@ from getMinLength to getMaxLength; checkMachine tries the longest first.  The ri
 Each machine is an IInlineLoopDevice, so the crawler takes the loop through it as a run of the pipe that feeds
 its inlet (LoopGraphCrawler.visitInlineLoopDevice): the pipe's bore and pressure rating, the machine's length.
 The pressure stages (compressor, valve, expander) are also GasPressureStages, which the pump binds to its
-GasLoopEngine after each crawl (MTECoolantPump.bindGasStages); on a liquid loop they are only pipe.  The radiator
+GasLoopEngine after each crawl (CoolantPumpGasLoop.bindStages); on a liquid loop they are only pipe.  The radiator
 exchanges heat through processThermalExchange like any loop device, on liquid and gas loops alike.
 */
 /** Base of the gas loop machines. See Note [Gas loop machines] */

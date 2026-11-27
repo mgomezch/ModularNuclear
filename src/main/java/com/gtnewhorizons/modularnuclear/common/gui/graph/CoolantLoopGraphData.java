@@ -35,11 +35,11 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.Flow
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.NodeType;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopId;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.ICoolantPumpHost;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
@@ -233,11 +233,11 @@ public class CoolantLoopGraphData {
     /**
      * Builds a comprehensive topological graph data snapshot from the active pump.
      */
-    public static CoolantLoopGraphData buildFrom(MTECoolantPump pump) {
+    public static CoolantLoopGraphData buildFrom(ICoolantPumpHost pump) {
         return buildFrom(pump, pump != null ? pump.getEngine() : null, pump != null ? pump.getLastCrawlResult() : null);
     }
 
-    public static CoolantLoopGraphData buildFrom(MTECoolantPump pump, CoolantLoopEngine engine, CrawlResult crawl) {
+    public static CoolantLoopGraphData buildFrom(ICoolantPumpHost pump, CoolantLoopEngine engine, CrawlResult crawl) {
         CoolantLoopGraphData data = new CoolantLoopGraphData();
         if (pump != null) {
             data.isFormed = pump.isLoopFormed();
@@ -349,7 +349,8 @@ public class CoolantLoopGraphData {
         return data;
     }
 
-    private static GraphNode createHubNode(MTECoolantPump pump, CoolantLoopEngine engine, String nodeId, FlowNode fn) {
+    private static GraphNode createHubNode(ICoolantPumpHost pump, CoolantLoopEngine engine, String nodeId,
+        FlowNode fn) {
         String label = nodeId;
         String itemType = "default_device";
         String nodeType = fn.type.name();
@@ -700,7 +701,7 @@ public class CoolantLoopGraphData {
         return edge;
     }
 
-    private static void buildLinearFallbackGraph(MTECoolantPump pump, CoolantLoopEngine engine,
+    private static void buildLinearFallbackGraph(ICoolantPumpHost pump, CoolantLoopEngine engine,
         CoolantLoopGraphData data) {
         GraphNode source = new GraphNode("source", "Pump discharge", "coolant_pump", "SOURCE", 0, 0, 0);
         // The reservoir's temperature is NaN while its fluid is unknown, which JSON can't carry

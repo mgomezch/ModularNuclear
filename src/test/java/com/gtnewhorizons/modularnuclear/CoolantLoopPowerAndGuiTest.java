@@ -21,6 +21,7 @@ import org.mockito.Mockito;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.CoolantPumpCore;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantLoopMachineGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedOutput;
@@ -277,7 +278,7 @@ public class CoolantLoopPowerAndGuiTest {
             .setFluid(CoolantFluidProperty.DISTILLED_WATER);
         pump.setRequiredFillLiters(1000L);
         pump.setCurrentFillLiters(1000L);
-        pump.setLoopState(MTECoolantPump.LoopState.CIRCULATING);
+        pump.setLoopState(CoolantPumpCore.LoopState.CIRCULATING);
 
         // makePowerfailEvents is true by default
         assertTrue(pump.makesPowerfailEvents());
@@ -286,7 +287,7 @@ public class CoolantLoopPowerAndGuiTest {
         // Standard shutdown verification
         assertFalse(pump.isAllowedToWork());
         assertTrue(pump.isPowerFailed());
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.STOPPED, pump.getLoopState());
         assertEquals(ShutDownReasonRegistry.POWER_LOSS.getDisplayString(), pump.getLoopStatus());
         assertEquals(500L, hatchEU[0], "Atomic drain: buffer must not be modified");
 
@@ -453,17 +454,17 @@ public class CoolantLoopPowerAndGuiTest {
         assertEquals(2048L, pump.getRequiredPowerDrawEU());
 
         // 1. Stopped / Empty
-        pump.setLoopState(MTECoolantPump.LoopState.STOPPED);
+        pump.setLoopState(CoolantPumpCore.LoopState.STOPPED);
         assertEquals(0L, pump.getPowerConsumptionEU(), "Stopped pump must report 0 EU/t");
         assertEquals(0.0, pump.getPumpMechanicalPowerWatts(), 1e-4, "Stopped pump must report 0 mechanical watts");
 
         // 2. Filling state
-        pump.setLoopState(MTECoolantPump.LoopState.FILLING);
+        pump.setLoopState(CoolantPumpCore.LoopState.FILLING);
         assertEquals(2048L, pump.getPowerConsumptionEU(), "Filling pump must report full power draw (2048 EU/t)");
         assertEquals(0.0, pump.getPumpMechanicalPowerWatts(), 1e-4, "Filling pump has 0 mechanical watts");
 
         // 3. Circulating state
-        pump.setLoopState(MTECoolantPump.LoopState.CIRCULATING);
+        pump.setLoopState(CoolantPumpCore.LoopState.CIRCULATING);
         assertEquals(2048L, pump.getPowerConsumptionEU(), "Circulating pump must report 2048 EU/t");
         pump.getEngine()
             .setPumpMechanicalPowerWatts(139264.0);
@@ -474,7 +475,7 @@ public class CoolantLoopPowerAndGuiTest {
             "Pump must report engine produced mechanical watts");
 
         // 4. Decelerating with flow > 0 (Phase A active braking)
-        pump.setLoopState(MTECoolantPump.LoopState.DECELERATING);
+        pump.setLoopState(CoolantPumpCore.LoopState.DECELERATING);
         pump.getEngine()
             .setVolumetricFlowRate(0.05); // 50 L/s > 1e-5
         assertEquals(2048L, pump.getPowerConsumptionEU(), "Active deceleration with flow must report 2048 EU/t");
@@ -489,10 +490,10 @@ public class CoolantLoopPowerAndGuiTest {
         pump.mEnergyHatches.add(createMockEnergyHatch(4, hatch2EU));
         assertEquals(8192L, pump.getRequiredPowerDrawEU());
 
-        pump.setLoopState(MTECoolantPump.LoopState.CIRCULATING);
+        pump.setLoopState(CoolantPumpCore.LoopState.CIRCULATING);
         assertEquals(8192L, pump.getPowerConsumptionEU(), "Circulating pump with 2 hatches must report 8192 EU/t");
 
-        pump.setLoopState(MTECoolantPump.LoopState.FILLING);
+        pump.setLoopState(CoolantPumpCore.LoopState.FILLING);
         assertEquals(8192L, pump.getPowerConsumptionEU(), "Filling pump with 2 hatches must report 8192 EU/t");
 
         // 7. Allowed to work = false disables power consumption

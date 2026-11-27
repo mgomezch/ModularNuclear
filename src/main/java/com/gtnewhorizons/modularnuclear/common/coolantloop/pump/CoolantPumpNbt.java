@@ -1,4 +1,4 @@
-package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
+package com.gtnewhorizons.modularnuclear.common.coolantloop.pump;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -23,14 +23,14 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 
 /**
- * The coolant pump's saved state: its loop chunks, fill and rotor state, its hatches' positions, the loop engine's
- * state, and the devices of its last crawl, so a load can bind them again.
+ * A pump core's saved state: its loop chunks, fill state, the loop engine's state, and the devices of its last crawl,
+ * so a load can bind them again.
  */
 final class CoolantPumpNbt {
 
     private CoolantPumpNbt() {}
 
-    static void save(MTECoolantPump p, NBTTagCompound aNBT) {
+    static void save(CoolantPumpCore p, NBTTagCompound aNBT) {
         if (!p.mLoopChunks.isEmpty()) {
             int[] chunks = new int[2 * p.mLoopChunks.size()];
             int i = 0;
@@ -47,28 +47,7 @@ final class CoolantPumpNbt {
         aNBT.setLong("mCurrentFillLiters", p.mCurrentFillLiters);
         aNBT.setLong("mRequiredFillLiters", p.mRequiredFillLiters);
         aNBT.setBoolean("mLoopAtRest", p.mLoopAtRest);
-        aNBT.setDouble("mRotorDamageAccumulator", p.mRotorDamageAccumulator);
         aNBT.setBoolean("mPowerFailed", p.mPowerFailed);
-        if (p.mTankMaterial != null && p.mTankMaterial.mName != null) {
-            aNBT.setString("mTankMaterial", p.mTankMaterial.mName);
-        }
-        if (p.mRotorMaterial != null && p.mRotorMaterial.mName != null) {
-            aNBT.setString("mRotorMaterial", p.mRotorMaterial.mName);
-        }
-
-        if (p.mDischargeHatch != null && p.mDischargeHatch.getBaseMetaTileEntity() != null) {
-            IGregTechTileEntity dte = p.mDischargeHatch.getBaseMetaTileEntity();
-            aNBT.setIntArray("discCoord", new int[] { dte.getXCoord(), dte.getYCoord(), dte.getZCoord() });
-        } else if (p.mSavedDischargeCoord != null) {
-            aNBT.setIntArray("discCoord", p.mSavedDischargeCoord);
-        }
-        if (p.mSuctionHatch != null && p.mSuctionHatch.getBaseMetaTileEntity() != null) {
-            IGregTechTileEntity ste = p.mSuctionHatch.getBaseMetaTileEntity();
-            aNBT.setIntArray("sucCoord", new int[] { ste.getXCoord(), ste.getYCoord(), ste.getZCoord() });
-        } else if (p.mSavedSuctionCoord != null) {
-            aNBT.setIntArray("sucCoord", p.mSavedSuctionCoord);
-        }
-
         NBTTagCompound engineTag = new NBTTagCompound();
         LoopStateNbt.write(p.mEngine.exportState(), engineTag);
         aNBT.setTag("mEngine", engineTag);
@@ -100,7 +79,7 @@ final class CoolantPumpNbt {
         }
     }
 
-    static void load(MTECoolantPump p, NBTTagCompound aNBT) {
+    static void load(CoolantPumpCore p, NBTTagCompound aNBT) {
         p.mLoopChunks = new HashSet<>();
         int[] loopChunks = aNBT.getIntArray("mLoopChunks");
         for (int i = 0; i + 1 < loopChunks.length; i += 2) {
@@ -109,7 +88,7 @@ final class CoolantPumpNbt {
         p.mReservoir.loadNBTData(aNBT);
         if (aNBT.hasKey("mLoopState")) {
             try {
-                p.mLoopState = MTECoolantPump.LoopState.valueOf(aNBT.getString("mLoopState"));
+                p.mLoopState = CoolantPumpCore.LoopState.valueOf(aNBT.getString("mLoopState"));
             } catch (Exception swallowed) {
                 Swallowed.note(swallowed);
             }
@@ -121,34 +100,12 @@ final class CoolantPumpNbt {
         if (aNBT.hasKey("mRequiredFillLiters")) {
             p.mRequiredFillLiters = aNBT.getLong("mRequiredFillLiters");
         }
-        if (aNBT.hasKey("mRotorDamageAccumulator")) {
-            p.mRotorDamageAccumulator = aNBT.getDouble("mRotorDamageAccumulator");
-        }
         if (aNBT.hasKey("mPowerFailed")) {
             p.mPowerFailed = aNBT.getBoolean("mPowerFailed");
         }
         if (aNBT.hasKey("mLoopStatus", Constants.NBT.TAG_COMPOUND)) {
             p.mLoopStatus = LocalizedTextNbt.read(aNBT.getCompoundTag("mLoopStatus"));
         }
-        if (aNBT.hasKey("mTankMaterial")) {
-            Materials mat = Materials.get(aNBT.getString("mTankMaterial"));
-            if (mat != null) {
-                p.mTankMaterial = mat;
-            }
-        }
-        if (aNBT.hasKey("mRotorMaterial")) {
-            Materials mat = Materials.get(aNBT.getString("mRotorMaterial"));
-            if (mat != null) {
-                p.mRotorMaterial = mat;
-            }
-        }
-        if (aNBT.hasKey("discCoord")) {
-            p.mSavedDischargeCoord = aNBT.getIntArray("discCoord");
-        }
-        if (aNBT.hasKey("sucCoord")) {
-            p.mSavedSuctionCoord = aNBT.getIntArray("sucCoord");
-        }
-
         if (aNBT.hasKey("mEngine", 10)) {
             java.util.Map<String, Object> state = LoopStateNbt.read(aNBT.getCompoundTag("mEngine"));
             // A gas loop's engine is a GasLoopEngine. See Note [The pump on a gas loop]

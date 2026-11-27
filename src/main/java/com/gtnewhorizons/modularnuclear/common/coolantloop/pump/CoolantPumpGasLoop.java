@@ -1,4 +1,4 @@
-package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
+package com.gtnewhorizons.modularnuclear.common.coolantloop.pump;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.fluids.FluidStack;
@@ -49,7 +49,7 @@ final class CoolantPumpGasLoop {
      * The gas the pump's loop carries, or null for a liquid loop: the gas engine's, or the reservoir's fluid's if it
      * is a gas.
      */
-    static GasProperty loopGas(MTECoolantPump p, FluidStack reservoirFluid) {
+    static GasProperty loopGas(CoolantPumpCore p, FluidStack reservoirFluid) {
         if (p.mEngine instanceof GasLoopEngine g && p.mCurrentFillLiters > 0L) return g.getGas();
         if (reservoirFluid != null && reservoirFluid.getFluid() != null) {
             GasProperty gas = GasProperty.get(
@@ -61,7 +61,7 @@ final class CoolantPumpGasLoop {
     }
 
     /** Makes the pump's engine a gas engine for this gas, or a liquid engine for null, keeping the segments. */
-    static void useEngineFor(MTECoolantPump p, GasProperty gas) {
+    static void useEngineFor(CoolantPumpCore p, GasProperty gas) {
         CoolantLoopEngine current = p.mEngine;
         boolean fits = gas == null ? !(current instanceof GasLoopEngine)
             : current instanceof GasLoopEngine g && g.getGas() == gas;
@@ -77,24 +77,24 @@ final class CoolantPumpGasLoop {
     }
 
     /** Binds the pump's pressure stages to its gas engine. Called after every rebuild of the device bindings. */
-    static void bindStages(MTECoolantPump p) {
+    static void bindStages(CoolantPumpCore p) {
         if (!(p.mEngine instanceof GasLoopEngine e)) return;
         e.clearStages();
-        for (MTECoolantPump.DeviceSegmentBinding b : p.getDeviceBindingsRaw()) {
+        for (CoolantPumpCore.DeviceSegmentBinding b : p.getDeviceBindingsRaw()) {
             if (b.device instanceof GasPressureStage stage && b.segment != null) e.bindStage(b.segment.getKey(), stage);
         }
     }
 
-    static double liquidFraction(MTECoolantPump p) {
+    static double liquidFraction(CoolantPumpCore p) {
         return LIQUID_FRACTIONS[Math.floorMod(p.mGasChargeSetting, LIQUID_FRACTIONS.length)];
     }
 
-    static double chargePressureBar(MTECoolantPump p) {
+    static double chargePressureBar(CoolantPumpCore p) {
         return CHARGE_PRESSURES_BAR[Math.floorMod(p.mGasChargeSetting, CHARGE_PRESSURES_BAR.length)];
     }
 
     /** Litres of gas (at 0 °C, 1 atm) the loop takes. */
-    static long requiredChargeLiters(MTECoolantPump p, GasLoopEngine e) {
+    static long requiredChargeLiters(CoolantPumpCore p, GasLoopEngine e) {
         double ambientK = p.getBiomeTemperatureCelsius() + 273.15;
         double kg = GasLoopEngine.requiredChargeKg(
             e.getGas(),
@@ -110,7 +110,7 @@ final class CoolantPumpGasLoop {
     }
 
     /** The screwdriver on the pump's controller: the next charge setting. */
-    static void cycleCharge(MTECoolantPump p, EntityPlayer player) {
+    static void cycleCharge(CoolantPumpCore p, EntityPlayer player) {
         p.mGasChargeSetting = Math.floorMod(p.mGasChargeSetting + 1, LIQUID_FRACTIONS.length);
         GTUtility.sendChatToPlayer(
             player,
@@ -121,7 +121,7 @@ final class CoolantPumpGasLoop {
     }
 
     /** One tick of a gas loop. False when the loop failed. */
-    static boolean step(MTECoolantPump p, IGregTechTileEntity baseTE, GasProperty gas) {
+    static boolean step(CoolantPumpCore p, IGregTechTileEntity baseTE, GasProperty gas) {
         useEngineFor(p, gas);
         GasLoopEngine e = (GasLoopEngine) p.mEngine;
         if (e.getStageCount() == 0) bindStages(p);
@@ -140,14 +140,14 @@ final class CoolantPumpGasLoop {
         }
 
         // A loop at rest may have changed: crawled again before it starts. See Note [Changing a stopped coolant loop]
-        MTECoolantPump.Step restart = CoolantPumpFillDrain.stepRestartCrawl(p, baseTE);
-        if (restart != MTECoolantPump.Step.CARRY_ON) return restart == MTECoolantPump.Step.DONE;
+        CoolantPumpCore.Step restart = CoolantPumpFillDrain.stepRestartCrawl(p, baseTE);
+        if (restart != CoolantPumpCore.Step.CARRY_ON) return restart == CoolantPumpCore.Step.DONE;
 
         if (p.isDischargeHatchDisabled()) return pumpDown(p, baseTE, e);
 
         if (p.mCurrentFillLiters < p.mRequiredFillLiters) return charge(p, baseTE, e, ambientK);
 
-        p.mLoopState = MTECoolantPump.LoopState.CIRCULATING;
+        p.mLoopState = CoolantPumpCore.LoopState.CIRCULATING;
         e.setPumpPowered(true);
         e.setBraking(false);
         baseTE.setActive(true);
@@ -171,22 +171,22 @@ final class CoolantPumpGasLoop {
         return ok;
     }
 
-    private static void stopCompressors(MTECoolantPump p, IGregTechTileEntity baseTE) {
+    private static void stopCompressors(CoolantPumpCore p, IGregTechTileEntity baseTE) {
         baseTE.setActive(false);
         p.mEngine.setPumpPowered(false);
         p.mEngine.setBraking(false);
-        if (p.mLoopState == MTECoolantPump.LoopState.CIRCULATING) p.mLoopState = MTECoolantPump.LoopState.STOPPED;
+        if (p.mLoopState == CoolantPumpCore.LoopState.CIRCULATING) p.mLoopState = CoolantPumpCore.LoopState.STOPPED;
     }
 
     /** Steps the engine and the devices' exchange. False if the loop ruptured. */
-    private static boolean runLoop(MTECoolantPump p, GasLoopEngine e) {
+    private static boolean runLoop(CoolantPumpCore p, GasLoopEngine e) {
         e.setHoldsCoolant(p.mCurrentFillLiters > 0L);
         e.step(0.05);
         if (e.isRuptured()) {
             p.triggerCatastrophicExplosion(p.engineFailureText(), e.getRupturedSegment());
             return false;
         }
-        for (MTECoolantPump.DeviceSegmentBinding b : p.getDeviceBindings()) {
+        for (CoolantPumpCore.DeviceSegmentBinding b : p.getDeviceBindings()) {
             double q = b.segment != null ? e.getLocalVolumetricFlow(b.segment) : 0.0;
             b.device.processThermalExchange(q, 0.05, e.getFluid(), b.segment);
         }
@@ -194,7 +194,7 @@ final class CoolantPumpGasLoop {
     }
 
     /** Charges a stopped loop from the reservoir. */
-    private static boolean charge(MTECoolantPump p, IGregTechTileEntity baseTE, GasLoopEngine e, double ambientK) {
+    private static boolean charge(CoolantPumpCore p, IGregTechTileEntity baseTE, GasLoopEngine e, double ambientK) {
         stopCompressors(p, baseTE);
         // The loop settles while it charges
         boolean ok = runLoop(p, e);
@@ -206,12 +206,12 @@ final class CoolantPumpGasLoop {
         long requiredEU = p.getRequiredPowerDrawEU();
         if (!p.drainEnergy(requiredEU)) return p.triggerPowerfail();
         baseTE.setActive(true);
-        p.mLoopState = MTECoolantPump.LoopState.FILLING;
+        p.mLoopState = CoolantPumpCore.LoopState.FILLING;
         long needed = p.mRequiredFillLiters - p.mCurrentFillLiters;
         int drained = p
             .drainFromReservoir((int) Math.min(Integer.MAX_VALUE, Math.min(p.currentFillRateLitersPerTick(), needed)));
         if (drained <= 0) {
-            p.mLoopState = MTECoolantPump.LoopState.STOPPED;
+            p.mLoopState = CoolantPumpCore.LoopState.STOPPED;
             p.setLoopStatusKey(
                 "modularnuclear.gas_loop.pump.status.charge_short",
                 p.mCurrentFillLiters,
@@ -236,27 +236,27 @@ final class CoolantPumpGasLoop {
     }
 
     /** Stops the compressors, lets the loop come to rest, then takes the charge back into the reservoir. */
-    private static boolean pumpDown(MTECoolantPump p, IGregTechTileEntity baseTE, GasLoopEngine e) {
+    private static boolean pumpDown(CoolantPumpCore p, IGregTechTileEntity baseTE, GasLoopEngine e) {
         stopCompressors(p, baseTE);
         boolean ok = runLoop(p, e);
         if (!ok) return false;
         if (e.getVolumetricFlowRate() > 0.0) {
-            p.mLoopState = MTECoolantPump.LoopState.DECELERATING;
+            p.mLoopState = CoolantPumpCore.LoopState.DECELERATING;
             p.setLoopStatusKey("modularnuclear.gas_loop.pump.status.settling");
             return true;
         }
         if (p.mCurrentFillLiters <= 0L) {
-            p.mLoopState = MTECoolantPump.LoopState.EMPTY;
+            p.mLoopState = CoolantPumpCore.LoopState.EMPTY;
             p.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.drained_complete");
             p.noteLoopAtRest();
             return true;
         }
         if (p.isReservoirFull()) {
-            p.mLoopState = MTECoolantPump.LoopState.STOPPED;
+            p.mLoopState = CoolantPumpCore.LoopState.STOPPED;
             p.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.draining_paused", p.mCurrentFillLiters);
             return true;
         }
-        p.mLoopState = MTECoolantPump.LoopState.DRAINING;
+        p.mLoopState = CoolantPumpCore.LoopState.DRAINING;
         int toReturn = (int) Math
             .min(Integer.MAX_VALUE, Math.min(p.currentFillRateLitersPerTick(), p.mCurrentFillLiters));
         int returned = p.fillIntoReservoir(toReturn);
@@ -270,7 +270,7 @@ final class CoolantPumpGasLoop {
         }
         if (p.mCurrentFillLiters <= 0L) {
             p.mCurrentFillLiters = 0L;
-            p.mLoopState = MTECoolantPump.LoopState.EMPTY;
+            p.mLoopState = CoolantPumpCore.LoopState.EMPTY;
             p.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.drained_complete");
         } else {
             p.setLoopStatusKey(
@@ -283,7 +283,7 @@ final class CoolantPumpGasLoop {
     }
 
     /** A status line for a gas loop's GUI and logs. */
-    static LocalizedText describe(MTECoolantPump p) {
+    static LocalizedText describe(CoolantPumpCore p) {
         return p.getLoopStatusMessage();
     }
 }

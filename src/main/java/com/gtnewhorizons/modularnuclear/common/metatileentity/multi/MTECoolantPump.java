@@ -1,14 +1,9 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
@@ -18,8 +13,6 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
-import net.minecraftforge.common.ForgeChunkManager;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -27,21 +20,18 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
-import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopFailure;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.CoolantPumpCore;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.CoolantPumpCore.LoopState;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.CoolantPumpReservoir;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.ICoolantPumpHost;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.LoopPort;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.PumpImpeller;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantLoopMachineGui;
-import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.CoolantPumpStructure;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantPumpReservoir;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.RailcraftPumpReservoir;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.ClientText;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
@@ -51,7 +41,6 @@ import com.gtnewhorizons.modularnuclear.common.util.MonitorCover;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
-import com.gtnewhorizons.modularnuclear.common.util.TickPhase;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
 import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
 
@@ -72,11 +61,8 @@ import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrors;
-import gregtech.api.util.GTLog;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.TurbineStatCalculator;
-import gregtech.api.util.shutdown.ShutDownReason;
-import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import mcp.mobius.waila.api.IWailaConfigHandler;
 import mcp.mobius.waila.api.IWailaDataAccessor;
@@ -88,7 +74,67 @@ import mcp.mobius.waila.api.IWailaDataAccessor;
  * Solves the closed loop hydrodynamics and advective heat transport.
  */
 public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
-    implements ICoolantLoopPump, ISurvivalConstructable {
+    implements ICoolantPumpHost, PumpImpeller, ISurvivalConstructable {
+
+    /** The pump's loop. See Note [Pump cores and their hosts] */
+    protected final CoolantPumpCore mCore = createPumpCore();
+
+    protected CoolantPumpCore createPumpCore() {
+        return new CoolantPumpCore(this);
+    }
+
+    @Override
+    public CoolantPumpCore getPumpCore() {
+        return mCore;
+    }
+
+    @Override
+    public PumpImpeller getImpeller() {
+        return this;
+    }
+
+    @Override
+    public boolean isPumpStructureFormed() {
+        return mMachine;
+    }
+
+    @Override
+    public LoopPort getDischargePort() {
+        return mDischargeHatch != null ? LoopPort.ofHatch(mDischargeHatch.getBaseMetaTileEntity()) : null;
+    }
+
+    @Override
+    public LoopPort getSuctionPort() {
+        return mSuctionHatch != null ? LoopPort.ofHatch(mSuctionHatch.getBaseMetaTileEntity()) : null;
+    }
+
+    /** The hatch saved at a position, or null if it is gone; UNLOADED while its chunk is not loaded. */
+    private static Object savedHatch(World w, int[] coord) {
+        if (coord == null) return null;
+        if (!w.blockExists(coord[0], coord[1], coord[2])) return UNLOADED;
+        return w.getTileEntity(coord[0], coord[1], coord[2]) instanceof IGregTechTileEntity gte
+            && gte.getMetaTileEntity() instanceof MTEHatchPressurizedFluid hatch ? hatch : null;
+    }
+
+    private static final Object UNLOADED = new Object();
+
+    @Override
+    public Boolean restoreLoopPorts(World w) {
+        Object discharge = savedHatch(w, mSavedDischargeCoord);
+        if (discharge == UNLOADED) return null;
+        if (discharge != null) mDischargeHatch = (MTEHatchPressurizedFluid) discharge;
+        Object suction = savedHatch(w, mSavedSuctionCoord);
+        if (suction == UNLOADED) return null;
+        if (suction != null) mSuctionHatch = (MTEHatchPressurizedFluid) suction;
+        return discharge != null && suction != null;
+    }
+
+    @Override
+    public void collectPumpChunks(Set<Long> chunks, boolean beforeStructureCheck) {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        // The pump's width is not known before its structure check, so that covers the widest pump and tank
+        if (base != null) collectPumpChunks(base, beforeStructureCheck ? MAX_PUMP_WIDTH : mWidth, chunks);
+    }
 
     // Multiblock dimensions (dynamic footprint W x L, fixed height 2)
     protected int mWidth = 3;
@@ -98,42 +144,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     // Hatches
     public MTEHatchPressurizedFluid mDischargeHatch = null;
     public MTEHatchPressurizedFluid mSuctionHatch = null;
-
-    // Simulation Engine
-    public static class DeviceSegmentBinding {
-
-        public final ICoolantLoopDevice device;
-        public final LoopSegment segment;
-
-        public DeviceSegmentBinding(ICoolantLoopDevice device, LoopSegment segment) {
-            this.device = device;
-            this.segment = segment;
-        }
-    }
-
-    protected CoolantLoopEngine mEngine = new CoolantLoopEngine(CoolantFluidProperty.DISTILLED_WATER);
-    protected List<ICoolantLoopDevice> mLoopDevices = new ArrayList<>();
-    protected final List<DeviceSegmentBinding> mDeviceBindings = new ArrayList<>();
-    protected long mLastSyncedGasVersion = -1L;
-    protected boolean mLoopFormed = false;
-    /**
-     * The blocks the formed loop runs through (pipes and devices), as they were when it formed; rebuilt lazily after
-     * a load. A loop whose blocks change no longer exists.
-     */
-    protected int[] mFootprint;
-    static final long STRUCTURE_SETTLE_TICKS = 200;
-    /** How often (ticks) a formed loop checks that its blocks are still there; the check walks the whole footprint. */
-    private static final int LOOP_CHECK_INTERVAL_TICKS = 100;
-    /**
-     * How often (ticks) a formed loop is crawled again. The loop check sees blocks change, not a device dropping its
-     * binding to the pump (a reactor's passages, say), which only a crawl restores.
-     */
-    private static final int LOOP_RECRAWL_INTERVAL_TICKS = 200;
     /** The widest pump, matching the widest Railcraft tank interior. */
     private static final int MAX_PUMP_WIDTH = 9;
-    protected Block[] mFootprintBlocks;
-    /** The status line, as a lang key and its arguments: each client localizes it. */
-    LocalizedText mLoopStatus = LocalizedText.of("modularnuclear.coolant_loop.pump.status.waiting");
     protected Materials mTankMaterial = Materials.Steel;
 
     // Impeller slot
@@ -141,77 +153,14 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     protected double mRotorEfficiency = 0.85;
     protected Materials mRotorMaterial = null;
 
-    public enum LoopState {
-        EMPTY,
-        FILLING,
-        FILLED,
-        CIRCULATING,
-        DECELERATING,
-        DRAINING,
-        STOPPED,
-        FAILED
-    }
-
-    // Loop State & Initial Filling Phase
-    protected LoopState mLoopState = LoopState.EMPTY;
-    protected long mCurrentFillLiters = 0L;
-    protected long mRequiredFillLiters = 0L;
-    protected long mFillRateLitersPerTick = (CoolantLoopDataRegistry.getPhysicsData() != null)
-        ? CoolantLoopDataRegistry.getPhysicsData()
-            .getFillRateLitersPerTick()
-        : 1000L;
-    /**
-     * Running total of the fill volume of the loop's pipes (in crawl order) then devices, so filling can go part by
-     * part; null until the loop is crawled.
-     */
-    protected long[] mFillOrderCumulative = null;
-    // The stopped loop can change without harm until it restarts. See Note [Changing a stopped coolant loop]
-    boolean mLoopAtRest = false;
-    /** The crawl under way is the one a restart waits for. */
-    boolean mRestartCrawlRunning = false;
-
-    // Reservoir management
-    protected final CoolantPumpReservoir mReservoir = createReservoir();
-
     /** The reservoir over the Railcraft tank above the pump. */
-    protected CoolantPumpReservoir createReservoir() {
-        return new CoolantPumpReservoir(this);
+    @Override
+    public CoolantPumpReservoir createReservoir() {
+        return new RailcraftPumpReservoir(this);
     }
 
-    protected boolean mPowerFailed = false;
-
-    // Multi-tick loop crawling state
-    protected long mLastCrawlStartTime = -1L;
-    protected long mLastCrawlCompleteTime = -1L;
-    protected LoopGraphCrawler.CrawlSession mActiveCrawl = null;
-    protected boolean mNeedsPostLoadRebind = false;
-    /** The next crawl is of a loop that was formed, so the loop keeps its state if the crawl finds it unchanged. */
-    boolean mRecrawlKeepsState = false;
-    /** Chunk tickets keeping the formed loop's chunks loaded. */
-    List<ForgeChunkManager.Ticket> mChunkTickets = new ArrayList<>();
-    /** The chunks the formed loop occupies, as chunkXZ2Int keys; saved, so a load can load them all at once. */
-    Set<Long> mLoopChunks = new HashSet<>();
     protected int[] mSavedDischargeCoord = null;
     protected int[] mSavedSuctionCoord = null;
-
-    public long getLastCrawlStartTime() {
-        return mLastCrawlStartTime;
-    }
-
-    public long getLastCrawlCompleteTime() {
-        return mLastCrawlCompleteTime;
-    }
-
-    public LoopGraphCrawler.CrawlSession getActiveCrawl() {
-        return mActiveCrawl;
-    }
-
-    // Loop Graph Visualization & Cover Detection
-    protected LoopGraphCrawler.CrawlResult mLastCrawlResult = null;
-
-    public LoopGraphCrawler.CrawlResult getLastCrawlResult() {
-        return mLastCrawlResult;
-    }
 
     public boolean hasComputerMonitorCover() {
         return MonitorCover.isOn(getBaseMetaTileEntity());
@@ -223,22 +172,10 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         return super.allowCoverOnSide(side, coverItem);
     }
 
-    public String getLoopGraphDataJson() {
-        return CoolantLoopGraphData.buildFrom(this)
-            .toJson();
-    }
-
-    public boolean isPowerFailed() {
-        if (getBaseMetaTileEntity() != null && getBaseMetaTileEntity().wasShutdown()) {
-            return getBaseMetaTileEntity().getLastShutDownReason() == ShutDownReasonRegistry.POWER_LOSS;
-        }
-        return mPowerFailed;
-    }
-
     @Override
     public void onEnableWorking() {
         super.onEnableWorking();
-        mPowerFailed = false;
+        mCore.onEnableWorking();
     }
 
     public boolean isMachineFormed() {
@@ -261,86 +198,16 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         this.mLength = length;
     }
 
-    public void setLoopStatus(LocalizedText loopStatus) {
-        mLoopStatus = loopStatus != null ? loopStatus : LocalizedText.EMPTY;
-    }
-
-    public CoolantPumpReservoir getReservoir() {
-        return mReservoir;
-    }
-
     public boolean isDischargeHatchDisabled() {
         if (mDischargeHatch == null) return false;
         return !mDischargeHatch.isAllowedToWork();
     }
 
-    public void addLoopDevice(ICoolantLoopDevice dev) {
-        if (dev != null && !mLoopDevices.contains(dev)) {
-            mLoopDevices.add(dev);
-            dev.setLoopPump(this);
-            LoopSegment seg = null;
-            if (mEngine != null) {
-                String devId = dev.getDeviceId();
-                for (LoopSegment s : mEngine.getSegments()) {
-                    if (s.getId()
-                        .equals(devId)) {
-                        seg = s;
-                        break;
-                    }
-                }
-            }
-            mDeviceBindings.add(new DeviceSegmentBinding(dev, seg));
-            CoolantPumpGasLoop.bindStages(this);
-        }
-    }
-
-    public void rebuildDeviceBindings() {
-        mDeviceBindings.clear();
-        if (mEngine == null || mLoopDevices.isEmpty()) {
-            return;
-        }
-        Map<String, LoopSegment> segmentMap = new HashMap<>();
-        for (LoopSegment s : mEngine.getSegments()) {
-            segmentMap.put(s.getId(), s);
-        }
-        for (ICoolantLoopDevice dev : mLoopDevices) {
-            mDeviceBindings.add(new DeviceSegmentBinding(dev, segmentMap.get(dev.getDeviceId())));
-        }
-        CoolantPumpGasLoop.bindStages(this);
-    }
-
-    /** The bindings as they are, without rebuilding them. */
-    List<DeviceSegmentBinding> getDeviceBindingsRaw() {
-        return mDeviceBindings;
-    }
-
-    /** Which charge a gas loop takes. See Note [The pump on a gas loop] */
-    int mGasChargeSetting = 0;
-
     @Override
     public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
         ItemStack aTool) {
-        if (CoolantPumpGasLoop.loopGas(this, getReservoirFluid()) != null) {
-            CoolantPumpGasLoop.cycleCharge(this, aPlayer);
-            return;
-        }
+        if (mCore.cycleGasCharge(aPlayer)) return;
         super.onScrewdriverRightClick(side, aPlayer, aX, aY, aZ, aTool);
-    }
-
-    public List<DeviceSegmentBinding> getDeviceBindings() {
-        if (mDeviceBindings.isEmpty() && !mLoopDevices.isEmpty()) {
-            rebuildDeviceBindings();
-        }
-        return mDeviceBindings;
-    }
-
-    /** Flow through a device's segment: the loop flow times the share of it that reaches that branch. */
-    static double branchFlow(double loopFlowM3s, LoopSegment segment) {
-        return segment != null ? loopFlowM3s * segment.getFlowFraction() : loopFlowM3s;
-    }
-
-    public List<ICoolantLoopDevice> getLoopDevices() {
-        return mLoopDevices;
     }
 
     public MTECoolantPump(int aID, String aName, String aNameRegional) {
@@ -399,8 +266,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         // Check Railcraft tank presence above pump
         boolean hasValidTank = verifyRailcraftTankAbove(aBaseMetaTileEntity);
         if (!hasValidTank) {
-            if ("modularnuclear.coolant_loop.pump.status.formed".equals(mLoopStatus.key)
-                || mLoopStatus.equals(LocalizedText.EMPTY)) {
+            if ("modularnuclear.coolant_loop.pump.status.formed".equals(mCore.mLoopStatus.key)
+                || mCore.mLoopStatus.equals(LocalizedText.EMPTY)) {
                 setLoopStatusKey("modularnuclear.coolant_loop.pump.status.missing_or_mismatched_tank");
             }
             aErrors
@@ -445,7 +312,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         checkMaintenance();
         setLoopStatusKey("modularnuclear.coolant_loop.pump.status.formed");
         // A saved loop is restored by rebindRestoredLoop, which re-crawls only if it changed
-        if (mActiveCrawl != null && !mActiveCrawl.isDone() || mNeedsPostLoadRebind) {
+        if (mCore.mActiveCrawl != null && !mCore.mActiveCrawl.isDone() || mCore.mNeedsPostLoadRebind) {
             return;
         }
         crawlLoopGraph();
@@ -461,7 +328,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
      * fully formed with matching footprint and containing coolant fluid.
      */
     public boolean verifyRailcraftTankAbove(IGregTechTileEntity aBaseMetaTileEntity) {
-        return mReservoir.verifyRailcraftTankAbove(aBaseMetaTileEntity);
+        return ((RailcraftPumpReservoir) mCore.mReservoir).verifyRailcraftTankAbove(aBaseMetaTileEntity);
     }
 
     public static boolean isPlainRegularWater(net.minecraftforge.fluids.Fluid fluid) {
@@ -534,157 +401,14 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         return NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     }
 
-    public double getCoolantTemperatureCelsius() {
-        if (mEngine != null && mEngine.getSegments() != null
-            && !mEngine.getSegments()
-                .isEmpty()) {
-            if (mLoopState == LoopState.CIRCULATING || mEngine.getVolumetricFlowRate() > 1e-5) {
-                return mEngine.getMinLoopTempCelsius();
-            }
-        }
-        if (mReservoir != null) {
-            double resTemp = mReservoir.getReservoirTemperatureCelsius();
-            if (!Double.isNaN(resTemp)) {
-                return resTemp;
-            }
-        }
-        return getBiomeTemperatureCelsius();
-    }
-
-    public FluidStack getReservoirFluid() {
-        return mReservoir.getReservoirFluid();
-    }
-
-    /**
-     * Re-crawls the connected piping circuit from the discharge hatch back to suction.
-     */
-    public boolean crawlLoopGraph() {
-        IGregTechTileEntity te = getBaseMetaTileEntity();
-        if (te == null || te.getWorld() == null) {
-            return false;
-        }
-        if (mLoopFormed) mRecrawlKeepsState = true;
-
-        if (mDischargeHatch == null || mSuctionHatch == null) {
-            mActiveCrawl = null;
-            mRecrawlKeepsState = false;
-            releaseLoopChunks();
-            mLoopFormed = false;
-            mRestartCrawlRunning = false;
-            if (mLoopAtRest) {
-                mLoopState = LoopState.STOPPED;
-            } else {
-                mLoopState = LoopState.EMPTY;
-                mCurrentFillLiters = 0L;
-            }
-            setLoopStatusKey("modularnuclear.coolant_loop.pump.status.req_hatches");
-            return false;
-        }
-
-        IGregTechTileEntity discTE = mDischargeHatch.getBaseMetaTileEntity();
-        IGregTechTileEntity sucTE = mSuctionHatch.getBaseMetaTileEntity();
-
-        if (discTE == null || sucTE == null) {
-            mActiveCrawl = null;
-            mLoopFormed = false;
-            return false;
-        }
-
-        mLastCrawlStartTime = (te != null) ? te.getTimer() : System.currentTimeMillis();
-        LoopGraphCrawler crawler = new LoopGraphCrawler(te.getWorld(), LoopGraphCrawler.DEFAULT_MAX_STEPS);
-        mActiveCrawl = crawler.startSession(
-            discTE.getXCoord(),
-            discTE.getYCoord(),
-            discTE.getZCoord(),
-            discTE.getFrontFacing(),
-            sucTE.getXCoord(),
-            sucTE.getYCoord(),
-            sucTE.getZCoord(),
-            sucTE.getFrontFacing(),
-            new LoopGraphCrawler.BlockPosCoord(te.getXCoord(), te.getYCoord(), te.getZCoord()),
-            this,
-            mTankMaterial);
-
-        mActiveCrawl.step(LoopGraphCrawler.STEPS_PER_TICK);
-
-        if (mActiveCrawl.isDone()) {
-            mLastCrawlCompleteTime = (te != null) ? te.getTimer() : System.currentTimeMillis();
-            LoopGraphCrawler.CrawlResult result = mActiveCrawl.getResult();
-            mActiveCrawl = null;
-            return applyCrawlResult(result);
-        } else if (!mLoopFormed) {
-            setLoopStatusKey(
-                "modularnuclear.coolant_loop.pump.status.crawling",
-                mActiveCrawl.getStepCount(),
-                mActiveCrawl.getTicksElapsed());
-            return false;
-        } else {
-            // A formed loop keeps circulating while it is re-crawled
-            return false;
-        }
-    }
-
-    public void stepActiveCrawl() {
-        if (mActiveCrawl == null) return;
-        mActiveCrawl.step(LoopGraphCrawler.STEPS_PER_TICK);
-        if (mActiveCrawl.isDone()) {
-            IGregTechTileEntity te = getBaseMetaTileEntity();
-            mLastCrawlCompleteTime = (te != null) ? te.getTimer() : System.currentTimeMillis();
-            LoopGraphCrawler.CrawlResult result = mActiveCrawl.getResult();
-            mActiveCrawl = null;
-            applyCrawlResult(result);
-        } else if (!mLoopFormed) {
-            setLoopStatusKey(
-                "modularnuclear.coolant_loop.pump.status.crawling",
-                mActiveCrawl.getStepCount(),
-                mActiveCrawl.getTicksElapsed());
-        }
-    }
-
-    public boolean applyCrawlResult(LoopGraphCrawler.CrawlResult result) {
-        return CoolantPumpLoopBinding.applyCrawlResult(this, result);
-    }
-
-    /** This pump's offset for its periodic checks, so pumps loaded together do not crawl on the same tick. */
-    private int mSchedulePhase = -1;
-
-    int schedulePhase() {
-        if (mSchedulePhase < 0 && getBaseMetaTileEntity() != null) {
-            mSchedulePhase = TickPhase.of(getBaseMetaTileEntity());
-        }
-        return Math.max(mSchedulePhase, 0);
-    }
-
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide()) {
-            int phase = schedulePhase();
-            if (mNeedsPostLoadRebind) {
-                rebindRestoredLoop(aBaseMetaTileEntity);
-            }
             if (!hasRotor()) {
                 checkAndLoadImpellerFromInputBus();
             }
-            if (mActiveCrawl != null) {
-                stepActiveCrawl();
-            } else if (!mLoopFormed && mMachine && TickPhase.due(aTick, phase, 100)) {
-                crawlLoopGraph();
-            }
-            if (mLoopFormed && !mLoopAtRest && TickPhase.due(aTick, phase, LOOP_CHECK_INTERVAL_TICKS)) {
-                LocalizedText loopBreak = findLoopBreak(aBaseMetaTileEntity.getWorld());
-                if (loopBreak != null) onDeviceDisconnected(null, loopBreak);
-            }
-            if (mLoopFormed && !mLoopAtRest
-                && mActiveCrawl == null
-                && TickPhase.due(aTick, phase, LOOP_RECRAWL_INTERVAL_TICKS)) {
-                crawlLoopGraph();
-            }
-            stepCoolantLoop();
-            // Saves the loop's changing state; markDirty also updates comparators around the pump, so not every second
-            if (mLoopFormed && TickPhase.due(aTick, phase, 100)) {
-                aBaseMetaTileEntity.markDirty();
-            }
+            mCore.onPostTick(aBaseMetaTileEntity, aTick);
         }
     }
 
@@ -692,35 +416,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
         super.onFirstTick(aBaseMetaTileEntity);
         if (!aBaseMetaTileEntity.isServerSide()) return;
-        if (mNeedsPostLoadRebind) loadLoopChunks(aBaseMetaTileEntity.getWorld());
+        mCore.beforeFirstTick(aBaseMetaTileEntity);
         MultiblockStartup.formNow(this);
-        if (mNeedsPostLoadRebind) rebindRestoredLoop(aBaseMetaTileEntity);
-    }
-
-    /**
-     * Loads every chunk a saved loop occupies, so the loop can be restored on the pump's first tick instead of
-     * waiting for its chunks. It runs in a tick, never while a chunk is loading, so it cannot recurse into loads.
-     * Chunk tickets normally have them loaded already; this covers a loop saved without them.
-     */
-    private void loadLoopChunks(World world) {
-        if (!(world instanceof WorldServer ws)) return;
-        Set<Long> chunks = new HashSet<>(mLoopChunks);
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        // The pump's width is not known before its structure check, so this covers the widest pump and tank
-        if (base != null) collectPumpChunks(base, MAX_PUMP_WIDTH, chunks);
-        if (mLastCrawlResult != null && mLastCrawlResult.pipePositions != null) {
-            for (LoopGraphCrawler.BlockPosCoord p : mLastCrawlResult.pipePositions) {
-                StructureChunks.addBlock(p.x, p.z, chunks);
-            }
-        }
-        for (long chunk : chunks) {
-            int cx = (int) chunk, cz = (int) (chunk >>> 32);
-            if (!ws.theChunkProviderServer.chunkExists(cx, cz)) ws.theChunkProviderServer.loadChunk(cx, cz);
-        }
-    }
-
-    protected void rebindRestoredLoop(IGregTechTileEntity aBaseMetaTileEntity) {
-        CoolantPumpLoopBinding.rebindRestoredLoop(this, aBaseMetaTileEntity);
+        mCore.afterFirstTick(aBaseMetaTileEntity);
     }
 
     public List<MTEHatchEnergy> getValidEnergyHatches() {
@@ -754,60 +452,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         return 4L * GTValues.V[maxTier];
     }
 
-    public boolean triggerPowerfail() {
-        mPowerFailed = true;
-        stopMachine(ShutDownReasonRegistry.POWER_LOSS);
-        if (getBaseMetaTileEntity() != null) {
-            getBaseMetaTileEntity().setActive(false);
-            getBaseMetaTileEntity().setShutDownReason(ShutDownReasonRegistry.POWER_LOSS);
-        }
-        mLoopState = LoopState.STOPPED;
-        mEngine.setPumpPowered(false);
-        mEngine.setPumpMechanicalPowerWatts(0.0);
-        mEngine.setBraking(false);
-        setLoopStatus(shutDownText(ShutDownReasonRegistry.POWER_LOSS));
-        return stepCoastingAndCheckRupture();
-    }
-
-    // A stopped loop holding coolant comes to rest. See Note [Changing a stopped coolant loop]
-    void noteLoopAtRest() {
-        if (mCurrentFillLiters <= 0L) {
-            mLoopAtRest = false;
-        } else if (mEngine.getVolumetricFlowRate() == 0.0) {
-            mLoopAtRest = true;
-        }
-    }
-
-    public boolean isLoopAtRest() {
-        return mLoopAtRest;
-    }
-
-    protected boolean stepCoastingAndCheckRupture() {
-        mEngine.step(0.05);
-        processCoastingThermalExchange();
-        if (mEngine.isRuptured()) {
-            triggerCatastrophicExplosion(engineFailureText(), mEngine.getRupturedSegment());
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Executes thermal exchange across in-line devices while fluid is coasting down through inertia.
-     */
-    public void processCoastingThermalExchange() {
-        double flowRate = mEngine.getVolumetricFlowRate();
-        if (flowRate > 1e-6) {
-            for (DeviceSegmentBinding b : getDeviceBindings()) {
-                double q = b.segment != null ? mEngine.getLocalVolumetricFlow(b.segment) : flowRate;
-                b.device.processThermalExchange(q, 0.05, mEngine.getFluid(), b.segment);
-            }
-        }
-    }
-
     public boolean drainEnergy(long aEU) {
         if (aEU <= 0) {
-            mPowerFailed = false;
+            mCore.mPowerFailed = false;
             return true;
         }
 
@@ -835,14 +482,14 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                         bte.decreaseStoredEnergyUnits(toDrain, false);
                         remaining -= toDrain;
                         if (remaining <= 0) {
-                            mPowerFailed = false;
+                            mCore.mPowerFailed = false;
                             return true;
                         }
                     }
                 }
             }
             if (remaining <= 0) {
-                mPowerFailed = false;
+                mCore.mPowerFailed = false;
                 return true;
             }
             return false;
@@ -851,49 +498,23 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (getBaseMetaTileEntity() != null && getBaseMetaTileEntity().getStoredEU() >= aEU) {
             boolean drained = getBaseMetaTileEntity().decreaseStoredEnergyUnits(aEU, false);
             if (drained) {
-                mPowerFailed = false;
+                mCore.mPowerFailed = false;
             }
             return drained;
         }
         return false;
     }
 
-    /** The devices of the current loop stop pointing at this pump, so a removed pump is not kept alive by them. */
-    protected void releaseLoopDevices() {
-        for (ICoolantLoopDevice dev : mLoopDevices) {
-            if (dev != null) dev.setLoopPump(null);
-        }
-        mLoopDevices = new ArrayList<>();
-        mDeviceBindings.clear();
-    }
-
     @Override
     public void onRemoval() {
-        releaseLoopDevices();
-        releaseLoopChunks();
+        mCore.onRemoval();
         super.onRemoval();
     }
 
     @Override
     public void onUnload() {
-        releaseLoopDevices();
-        // The chunk tickets stay: they are saved with the world and bring the loop back loaded
+        mCore.onUnload();
         super.onUnload();
-    }
-
-    /**
-     * Why the formed loop no longer exists, or null if it still does: the pump's own structure broke, a device's
-     * machine was removed or unformed, or a pipe or device block in a loaded chunk changed since the loop formed.
-     */
-    public LocalizedText findLoopBreak(World world) {
-        return CoolantPumpLoopBinding.findLoopBreak(this, world);
-    }
-
-    /**
-     * Keeps loaded every chunk the formed loop occupies: the pump, its pipes and the whole structure of each device.
-     */
-    void updateLoopChunks() {
-        CoolantPumpLoopBinding.updateLoopChunks(this);
     }
 
     /**
@@ -916,123 +537,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
     }
 
-    void releaseLoopChunks() {
-        LoopChunkLoader.release(mChunkTickets);
-        mChunkTickets = new ArrayList<>();
-        mLoopChunks = new HashSet<>();
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base != null && base.getWorld() != null && !base.getWorld().isRemote) {
-            LoopChunkLoader.releaseRestored(base.getWorld(), base.getXCoord(), base.getYCoord(), base.getZCoord());
-        }
-    }
-
-    /** Records the loop's pipe blocks; none after a load, until the first crawl finds them again. */
-    void captureFootprint(World world) {
-        CoolantPumpLoopBinding.captureFootprint(this, world);
-    }
-
-    @Override
-    public void onDeviceDisconnected(ICoolantLoopDevice device, LocalizedText reason) {
-        CoolantPumpLoopBinding.onDeviceDisconnected(this, device, reason);
-    }
-
-    /** How a part of {@link #stepCoolantLoop} ended: carry on with the step, or end it as done or failed. */
-    enum Step {
-
-        CARRY_ON,
-        DONE,
-        FAILED;
-
-        static Step of(boolean done) {
-            return done ? DONE : FAILED;
-        }
-    }
-
-    public boolean stepCoolantLoop() {
-        return CoolantPumpCirculation.step(this);
-    }
-
     @Override
     public boolean onRunningTick(ItemStack aStack) {
         return true;
-    }
-
-    /** Pipes or devices the pump fills per second at least, however large they are. */
-    static final long FILL_PARTS_PER_SECOND = 4L;
-
-    /**
-     * Litres per tick the loop fills from (or drains back into) the reservoir: the configured fill rate, but never
-     * slower than four pipes (or devices) per second, taking them in crawl order. Filling is not limited by the loop's
-     * flow: a loop of large high-tier pipes, each of which takes its whole capacity, would otherwise take hours.
-     */
-    long currentFillRateLitersPerTick() {
-        long rate = mFillRateLitersPerTick;
-        long[] cumulative = mFillOrderCumulative;
-        if (cumulative != null && cumulative.length > 0) {
-            int i = Arrays.binarySearch(cumulative, mCurrentFillLiters + 1);
-            if (i < 0) i = -i - 1;
-            i = Math.min(i, cumulative.length - 1);
-            long part = cumulative[i] - (i > 0 ? cumulative[i - 1] : 0L);
-            rate = Math.max(rate, (part * FILL_PARTS_PER_SECOND + 19) / 20);
-        }
-        return Math.min(rate, Integer.MAX_VALUE);
-    }
-
-    /** The engine's rupture as a status line. */
-    protected LocalizedText engineFailureText() {
-        LoopFailure f = mEngine.getFailure();
-        return f != null ? LocalizedText.of(f.langKey, mEngine.getFailureArgs())
-            : LocalizedText.of("modularnuclear.coolant_loop.engine.failed");
-    }
-
-    /** A GregTech shutdown reason as a status line, in each client's language. */
-    static LocalizedText shutDownText(ShutDownReason reason) {
-        return LocalizedText.of("GT5U.gui.text.shutdown_reason." + reason.getKey());
-    }
-
-    protected void triggerCatastrophicExplosion(LocalizedText reason) {
-        triggerCatastrophicExplosion(reason, mEngine != null ? mEngine.getRupturedSegment() : null);
-    }
-
-    protected void triggerCatastrophicExplosion(LocalizedText reason, LoopSegment rupturedSegment) {
-        GTLog.writeExplosionLog(
-            this,
-            "COOLANT LOOP FAILURE: " + reason.english()
-                + (rupturedSegment != null ? " (segment " + rupturedSegment.getId() + ")" : "")
-                + String.format(
-                    ", peak %.1f bar, flow %.1f L/s",
-                    mEngine.getPeakLoopPressureBar(),
-                    mEngine.getVolumetricFlowRate() * 1000.0));
-
-        // Drain 80% of fluid from tank above
-        drainFromReservoir((int) (getTotalCoolantLiters() * 0.80));
-
-        IGregTechTileEntity te = getBaseMetaTileEntity();
-        if (te != null && te.getWorld() != null && !te.getWorld().isRemote) {
-            World world = te.getWorld();
-            int x = te.getXCoord();
-            int y = te.getYCoord();
-            int z = te.getZCoord();
-
-            // Explosion scaled to peak loop pressure
-            float explosionStrength = Math.min(25.0f, (float) (4.0f + mEngine.getPeakLoopPressureBar() / 10.0));
-            if (GregTechAPI.sMachineExplosions) {
-                world.createExplosion(null, x + 0.5, y + 1.5, z + 0.5, explosionStrength, true);
-                te.doExplosion((long) (explosionStrength * 1000));
-            }
-
-            spillCoolantFluid(world, rupturedSegment);
-        }
-
-        mLoopState = LoopState.FAILED;
-        mEngine.setPumpPowered(false);
-        mEngine.setPumpMechanicalPowerWatts(0.0);
-        mEngine.setBraking(false);
-        setLoopStatus(reason);
-    }
-
-    protected void spillCoolantFluid(World world, LoopSegment rupturedSegment) {
-        CoolantPumpFluidSafety.spillCoolantFluid(this, world, rupturedSegment);
     }
 
     public static boolean isMetaGeneratedTool(Item item) {
@@ -1134,20 +641,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     @Override
-    public double getPumpFluidTemperatureCelsius() {
-        if (mEngine != null && mEngine.getSegments() != null
-            && !mEngine.getSegments()
-                .isEmpty()) {
-            List<LoopSegment> segs = mEngine.getSegments();
-            LoopSegment suctionSeg = segs.get(segs.size() - 1);
-            if (suctionSeg != null) {
-                return suctionSeg.getCurrentTemperatureCelsius();
-            }
-        }
-        return getBiomeTemperatureCelsius();
-    }
-
-    @Override
     public double getHomologousTemperature() {
         return RotorThermalHelper.calculateHomologousTemperature(getPumpFluidTemperatureCelsius(), getRotorMaterial());
     }
@@ -1184,23 +677,12 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         return 0;
     }
 
-    public void failOnLiquidNuclearFuel(String fluidName) {
-        destroyImpeller();
-        mLoopState = LoopState.STOPPED;
-        mEngine.setPumpPowered(false);
-        mEngine.setPumpMechanicalPowerWatts(0.0);
-        mEngine.setBraking(false);
-        // Do NOT abruptly zero flow rate! Fluid continues circulating through inertia and slowing with drag.
-        String name = fluidName != null ? fluidName : "liquid nuclear fuel";
-        setLoopStatusKey("modularnuclear.coolant_loop.pump.status.catastrophic_fuel", name);
-    }
-
     public void failOnImpellerMelting(double fluidTemp, Materials mat) {
         destroyImpeller();
-        mLoopState = LoopState.STOPPED;
-        mEngine.setPumpPowered(false);
-        mEngine.setPumpMechanicalPowerWatts(0.0);
-        mEngine.setBraking(false);
+        mCore.mLoopState = LoopState.STOPPED;
+        mCore.mEngine.setPumpPowered(false);
+        mCore.mEngine.setPumpMechanicalPowerWatts(0.0);
+        mCore.mEngine.setBraking(false);
         // Do NOT abruptly zero flow rate! Fluid continues circulating through inertia and slowing with drag.
         String matName = mat != null ? RotorThermalHelper.getMaterialLocalizedName(mat) : "impeller";
         double meltC = RotorThermalHelper.getMeltingPointCelsius(mat);
@@ -1223,105 +705,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
     public void degradeRotor(long euPerTick) {
         CoolantPumpImpeller.degradeRotor(this, euPerTick);
-    }
-
-    public CoolantLoopEngine getEngine() {
-        return mEngine;
-    }
-
-    public boolean isLoopFormed() {
-        return mLoopFormed;
-    }
-
-    public void setLoopFormed(boolean formed) {
-        this.mLoopFormed = formed;
-    }
-
-    @Override
-    public LocalizedText getLoopStatusMessage() {
-        return mLoopStatus;
-    }
-
-    /** Sets the status line to a lang key and its arguments; an unchanged line keeps the same object. */
-    public void setLoopStatusKey(String key, Object... args) {
-        LocalizedText next = LocalizedText.of(key, args);
-        if (!next.equals(mLoopStatus)) mLoopStatus = next;
-    }
-
-    @Override
-    public boolean isCoolantFlowing() {
-        return mLoopState == LoopState.CIRCULATING && mEngine.getVolumetricFlowRate() > 1e-9;
-    }
-
-    public LoopState getLoopState() {
-        return mLoopState;
-    }
-
-    public void setLoopState(LoopState state) {
-        this.mLoopState = state;
-    }
-
-    public long getCurrentFillLiters() {
-        return mCurrentFillLiters;
-    }
-
-    public void setCurrentFillLiters(long liters) {
-        this.mCurrentFillLiters = liters;
-    }
-
-    public long getRequiredFillLiters() {
-        return mRequiredFillLiters;
-    }
-
-    public void setRequiredFillLiters(long liters) {
-        this.mRequiredFillLiters = liters;
-    }
-
-    public void setFillRateLitersPerTick(long litersPerTick) {
-        this.mFillRateLitersPerTick = litersPerTick;
-    }
-
-    @Override
-    public double getFillFraction() {
-        if (mRequiredFillLiters > 0) {
-            return Math.min(1.0, (double) mCurrentFillLiters / mRequiredFillLiters);
-        }
-        return mLoopFormed ? 1.0 : 0.0;
-    }
-
-    @Override
-    public String getLoopStateName() {
-        return mLoopState != null ? mLoopState.name() : "STOPPED";
-    }
-
-    @Override
-    public boolean isFlowing() {
-        return mLoopState == LoopState.CIRCULATING || mLoopState == LoopState.DECELERATING;
-    }
-
-    @Override
-    public double getMaxFlowRateLitersPerSecond() {
-        return mEngine != null ? mEngine.getMaxFlowRateLitersPerSecond() : 0.0;
-    }
-
-    @Override
-    public double getFlowRateLitersPerSecond() {
-        return mEngine != null ? mEngine.getFlowRateLitersPerSecond() : 0.0;
-    }
-
-    @Override
-    public double getPumpMechanicalPressureBar() {
-        return mEngine != null ? mEngine.getPumpHeadPressureBar() : 0.0;
-    }
-
-    @Override
-    public double getPeakLoopPressureBar() {
-        return mEngine != null ? mEngine.getPeakLoopPressureBar() : 1.0;
-    }
-
-    @Override
-    public double getPeakLoopTempCelsius() {
-        return mEngine != null ? mEngine.getPeakLoopTempCelsius() : 20.0;
     }
 
     @Override
@@ -1367,32 +750,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     @Override
-    public long getPowerConsumptionEU() {
-        if (mPowerFailed || !isAllowedToWork()) {
-            return 0L;
-        }
-        if (mLoopState == LoopState.CIRCULATING || mLoopState == LoopState.FILLING) {
-            return getRequiredPowerDrawEU();
-        }
-        if (mLoopState == LoopState.DECELERATING && (mEngine == null || mEngine.getVolumetricFlowRate() > 1e-5)) {
-            return getRequiredPowerDrawEU();
-        }
-        return 0L;
-    }
-
-    @Override
-    public double getPumpMechanicalPowerWatts() {
-        return mEngine != null ? mEngine.getPumpMechanicalPowerWatts() : 0.0;
-    }
-
-    @Override
-    public long getReservoirCapacityLiters() {
-        return mReservoir != null ? mReservoir.getTotalTankCapacityLiters() : 0L;
-    }
-
-    @Override
     public boolean checkRecipe(ItemStack aStack) {
-        return mLoopFormed;
+        return mCore.mLoopFormed;
     }
 
     @Override
@@ -1407,7 +766,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
     @Override
     public boolean hasRunningText() {
-        return mLoopFormed && super.hasRunningText();
+        return mCore.mLoopFormed && super.hasRunningText();
     }
 
     @Override
@@ -1441,78 +800,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             .setEnabled(false);
     }
 
-    /**
-     * Drains fluid from the Railcraft tank multiblock reservoir directly above the pump.
-     */
-    public int drainFromReservoir(int liters) {
-        return mReservoir.drainFromReservoir(liters);
-    }
-
-    /**
-     * Returns fluid from the coolant loop back into the Railcraft tank reservoir directly above the pump.
-     */
-    public int fillIntoReservoir(int liters) {
-        return mReservoir.fillIntoReservoir(liters);
-    }
-
-    /**
-     * Checks if the Railcraft tank reservoir directly above the pump is full.
-     */
-    public boolean isReservoirFull() {
-        return mReservoir.isReservoirFull();
-    }
-
-    @Override
-    public void consumeCoolant(long liters) {
-        if (liters <= 0) return;
-        drainFromReservoir((int) Math.min(Integer.MAX_VALUE, liters));
-    }
-
-    @Override
-    public void addDissolvedGas(String gasName, long liters) {
-        mReservoir.addDissolvedGas(gasName, liters);
-    }
-
-    @Override
-    public double getDissolvedGasFraction() {
-        return mReservoir.getDissolvedGasFraction();
-    }
-
-    @Override
-    public double getDissolvedGasPercentage() {
-        return mReservoir.getDissolvedGasPercentage();
-    }
-
-    @Override
-    public long getTotalDissolvedGasLiters() {
-        return mReservoir.getTotalDissolvedGasLiters();
-    }
-
-    @Override
-    public long getDissolvedGasAmount(String gasName) {
-        return mReservoir.getDissolvedGasAmount(gasName);
-    }
-
-    @Override
-    public Map<String, Long> getDissolvedGases() {
-        return mReservoir.getDissolvedGases();
-    }
-
-    @Override
-    public synchronized long extractDissolvedGas(String gasName, long maxLiters) {
-        return mReservoir.extractDissolvedGas(gasName, maxLiters);
-    }
-
-    @Override
-    public long getTotalCoolantLiters() {
-        return mReservoir.getTotalCoolantLiters();
-    }
-
-    @Override
-    public CoolantFluidProperty getCoolantFluidProperty() {
-        return mEngine != null ? mEngine.getFluid() : CoolantFluidProperty.DISTILLED_WATER;
-    }
-
     @Override
     public Materials getTankMaterial() {
         return mTankMaterial;
@@ -1523,14 +810,14 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     public static Materials getRailcraftTankMaterial(TileEntity te) {
-        return CoolantPumpReservoir.getRailcraftTankMaterial(te);
+        return RailcraftPumpReservoir.getRailcraftTankMaterial(te);
     }
 
     /** GregTech's scanner takes finished lines, as its own are: they are formatted in the game's language here. */
     @Override
     public String[] getInfoData() {
         String tankMatName = mTankMaterial != null ? mTankMaterial.mDefaultLocalName : "Unknown";
-        double maxFlowRateLPerSec = mEngine.getMaxFlowRateLitersPerSecond();
+        double maxFlowRateLPerSec = mCore.mEngine.getMaxFlowRateLitersPerSecond();
         String maxFlowStr = (maxFlowRateLPerSec == Double.MAX_VALUE)
             ? ClientText.get("gt.scanner.coolant_pump.max_pipe_flow.unlimited")
             : String.format("%.1f L/s", maxFlowRateLPerSec);
@@ -1556,22 +843,23 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             thermalWearStr = ClientText.format("gt.scanner.coolant_pump.impeller_thermal_wear", 1.0, 0.0, "");
         }
 
-        String loopStatusStr = mLoopFormed
+        String loopStatusStr = mCore.mLoopFormed
             ? ClientText.format(
                 "gt.scanner.coolant_pump.loop_active",
-                mEngine.getSegments()
+                mCore.mEngine.getSegments()
                     .size(),
-                mLoopDevices.size())
-            : ClientText.format("gt.scanner.coolant_pump.loop_incomplete", ClientText.of(mLoopStatus));
+                mCore.mLoopDevices.size())
+            : ClientText.format("gt.scanner.coolant_pump.loop_incomplete", ClientText.of(mCore.mLoopStatus));
 
-        return new String[] { ClientText.format("gt.scanner.coolant_pump.state", mLoopState.name()),
+        return new String[] { ClientText.format("gt.scanner.coolant_pump.state", mCore.mLoopState.name()),
             ClientText.format("gt.scanner.coolant_pump.discharge_hatch", hatchState),
             ClientText.format("gt.scanner.coolant_pump.tank_material", tankMatName),
-            ClientText.format("gt.scanner.coolant_pump.current_flow", mEngine.getFlowRateLitersPerSecond()),
+            ClientText.format("gt.scanner.coolant_pump.current_flow", mCore.mEngine.getFlowRateLitersPerSecond()),
             ClientText.format("gt.scanner.coolant_pump.max_pipe_flow", maxFlowStr),
-            ClientText.format("gt.scanner.coolant_pump.peak_pressure", mEngine.getPeakLoopPressureBar()),
-            ClientText.format("gt.scanner.coolant_pump.peak_temp", mEngine.getPeakLoopTempCelsius()),
-            ClientText.format("gt.scanner.coolant_pump.loop_fluid", mCurrentFillLiters, mRequiredFillLiters),
+            ClientText.format("gt.scanner.coolant_pump.peak_pressure", mCore.mEngine.getPeakLoopPressureBar()),
+            ClientText.format("gt.scanner.coolant_pump.peak_temp", mCore.mEngine.getPeakLoopTempCelsius()),
+            ClientText
+                .format("gt.scanner.coolant_pump.loop_fluid", mCore.mCurrentFillLiters, mCore.mRequiredFillLiters),
             ClientText.format("gt.scanner.coolant_pump.dissolved_gas", getDissolvedGasFraction() * 100.0), impellerStr,
             thermalWearStr, loopStatusStr };
     }
@@ -1582,8 +870,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (player != null) {
             super.getWailaNBTData(player, tile, tag, world, x, y, z);
         }
-        tag.setBoolean("loopFormed", mLoopFormed);
-        tag.setTag("loopStatus", LocalizedTextNbt.write(mLoopStatus));
+        tag.setBoolean("loopFormed", mCore.mLoopFormed);
+        tag.setTag("loopStatus", LocalizedTextNbt.write(mCore.mLoopStatus));
     }
 
     @Override
@@ -1610,13 +898,56 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
-        CoolantPumpNbt.save(this, aNBT);
+        mCore.saveNBTData(aNBT);
+        aNBT.setDouble("mRotorDamageAccumulator", mRotorDamageAccumulator);
+        if (mTankMaterial != null && mTankMaterial.mName != null) {
+            aNBT.setString("mTankMaterial", mTankMaterial.mName);
+        }
+        if (mRotorMaterial != null && mRotorMaterial.mName != null) {
+            aNBT.setString("mRotorMaterial", mRotorMaterial.mName);
+        }
+
+        if (mDischargeHatch != null && mDischargeHatch.getBaseMetaTileEntity() != null) {
+            IGregTechTileEntity dte = mDischargeHatch.getBaseMetaTileEntity();
+            aNBT.setIntArray("discCoord", new int[] { dte.getXCoord(), dte.getYCoord(), dte.getZCoord() });
+        } else if (mSavedDischargeCoord != null) {
+            aNBT.setIntArray("discCoord", mSavedDischargeCoord);
+        }
+        if (mSuctionHatch != null && mSuctionHatch.getBaseMetaTileEntity() != null) {
+            IGregTechTileEntity ste = mSuctionHatch.getBaseMetaTileEntity();
+            aNBT.setIntArray("sucCoord", new int[] { ste.getXCoord(), ste.getYCoord(), ste.getZCoord() });
+        } else if (mSavedSuctionCoord != null) {
+            aNBT.setIntArray("sucCoord", mSavedSuctionCoord);
+        }
+
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
-        CoolantPumpNbt.load(this, aNBT);
+        mCore.loadNBTData(aNBT);
+        if (aNBT.hasKey("mRotorDamageAccumulator")) {
+            mRotorDamageAccumulator = aNBT.getDouble("mRotorDamageAccumulator");
+        }
+        if (aNBT.hasKey("mTankMaterial")) {
+            Materials mat = Materials.get(aNBT.getString("mTankMaterial"));
+            if (mat != null) {
+                mTankMaterial = mat;
+            }
+        }
+        if (aNBT.hasKey("mRotorMaterial")) {
+            Materials mat = Materials.get(aNBT.getString("mRotorMaterial"));
+            if (mat != null) {
+                mRotorMaterial = mat;
+            }
+        }
+        if (aNBT.hasKey("discCoord")) {
+            mSavedDischargeCoord = aNBT.getIntArray("discCoord");
+        }
+        if (aNBT.hasKey("sucCoord")) {
+            mSavedSuctionCoord = aNBT.getIntArray("sucCoord");
+        }
+
     }
 
     public boolean addBottomHatch(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {

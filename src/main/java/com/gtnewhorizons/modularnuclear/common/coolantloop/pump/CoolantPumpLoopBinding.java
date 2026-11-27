@@ -1,4 +1,4 @@
-package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
+package com.gtnewhorizons.modularnuclear.common.coolantloop.pump;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -14,7 +14,6 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopDevices;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
@@ -39,7 +38,7 @@ zero.  So in CoolantLoopEngine.step, while the pump is unpowered and the flow is
 flow also falls at a constant rate that stops it within coastDownStopSeconds (2 s).  This is ergonomics, not physics.
 It only acts on an unpowered pump, so it can't touch a pump speeding up or a running loop, however slow.
 
-At rest.  MTECoolantPump.noteLoopAtRest sets mLoopAtRest when a stopped pump (disabled, unpowered, without a rotor, or
+At rest.  CoolantPumpCore.noteLoopAtRest sets mLoopAtRest when a stopped pump (disabled, unpowered, without a rotor, or
 with its discharge disabled) finds zero flow with coolant in the loop.  While it's set, the pump doesn't look for
 breaks or crawl on schedule, and onDeviceDisconnected ignores devices leaving, so nothing explodes or spills.  A crawl
 that does run and fails keeps the coolant (applyCrawlResult), and one that succeeds only updates the loop.
@@ -66,7 +65,7 @@ final class CoolantPumpLoopBinding {
 
     private CoolantPumpLoopBinding() {}
 
-    static boolean applyCrawlResult(MTECoolantPump pump, LoopGraphCrawler.CrawlResult result) {
+    static boolean applyCrawlResult(CoolantPumpCore pump, LoopGraphCrawler.CrawlResult result) {
         boolean keepState = pump.mRecrawlKeepsState;
         pump.mRecrawlKeepsState = false;
         boolean restarting = pump.mRestartCrawlRunning;
@@ -78,9 +77,9 @@ final class CoolantPumpLoopBinding {
             pump.mLastCrawlResult = result;
             pump.mLoopFormed = false;
             if (atRest) {
-                pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+                pump.mLoopState = CoolantPumpCore.LoopState.STOPPED;
             } else {
-                pump.mLoopState = MTECoolantPump.LoopState.EMPTY;
+                pump.mLoopState = CoolantPumpCore.LoopState.EMPTY;
                 pump.mCurrentFillLiters = 0L;
             }
             LocalizedText reason = (result != null && result.failureReason != null) ? result.failureReason
@@ -115,7 +114,7 @@ final class CoolantPumpLoopBinding {
         }
         pump.mLoopDevices = result.devices;
         for (ICoolantLoopDevice dev : pump.mLoopDevices) {
-            dev.setLoopPump(pump);
+            dev.setLoopPump(pump.host);
             requiredFill += dev.getFillVolumeLiters();
             fillOrder.add(requiredFill);
         }
@@ -128,24 +127,24 @@ final class CoolantPumpLoopBinding {
         pump.updateLoopChunks();
 
         if (atRest && !restarting) {
-            pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+            pump.mLoopState = CoolantPumpCore.LoopState.STOPPED;
             pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.at_rest", pump.mCurrentFillLiters);
             return true;
         }
         pump.mLoopAtRest = false;
 
-        if (sameLoop && pump.mLoopState != MTECoolantPump.LoopState.STOPPED
-            && pump.mLoopState != MTECoolantPump.LoopState.EMPTY) {
+        if (sameLoop && pump.mLoopState != CoolantPumpCore.LoopState.STOPPED
+            && pump.mLoopState != CoolantPumpCore.LoopState.EMPTY) {
             // A re-crawl of an unchanged running loop leaves it doing whatever it was doing
         } else if (pump.mCurrentFillLiters < pump.mRequiredFillLiters) {
-            pump.mLoopState = MTECoolantPump.LoopState.FILLING;
+            pump.mLoopState = CoolantPumpCore.LoopState.FILLING;
             pump.setLoopStatusKey(
                 "modularnuclear.coolant_loop.pump.status.filling_loop",
                 pump.mCurrentFillLiters,
                 pump.mRequiredFillLiters,
                 pump.mRequiredFillLiters > 0 ? (pump.mCurrentFillLiters * 100.0 / pump.mRequiredFillLiters) : 100.0);
         } else {
-            pump.mLoopState = MTECoolantPump.LoopState.CIRCULATING;
+            pump.mLoopState = CoolantPumpCore.LoopState.CIRCULATING;
             pump.setLoopStatusKey(
                 "modularnuclear.coolant_loop.pump.status.loop_active",
                 result.segments.size(),
@@ -155,40 +154,15 @@ final class CoolantPumpLoopBinding {
         return true;
     }
 
-    static void rebindRestoredLoop(MTECoolantPump pump, IGregTechTileEntity aBaseMetaTileEntity) {
+    static void rebindRestoredLoop(CoolantPumpCore pump, IGregTechTileEntity aBaseMetaTileEntity) {
         World w = aBaseMetaTileEntity.getWorld();
         if (w == null) return;
 
         boolean missingOrChanged = false;
 
-        if (pump.mSavedDischargeCoord != null) {
-            int cx = pump.mSavedDischargeCoord[0], cy = pump.mSavedDischargeCoord[1], cz = pump.mSavedDischargeCoord[2];
-            if (!w.blockExists(cx, cy, cz)) return;
-            TileEntity te = w.getTileEntity(cx, cy, cz);
-            if (te instanceof IGregTechTileEntity gte
-                && gte.getMetaTileEntity() instanceof MTEHatchPressurizedFluid ph) {
-                pump.mDischargeHatch = ph;
-            } else {
-                missingOrChanged = true;
-            }
-        } else {
-            missingOrChanged = true;
-        }
-
-        if (pump.mSavedSuctionCoord != null) {
-            int cx = pump.mSavedSuctionCoord[0], cy = pump.mSavedSuctionCoord[1], cz = pump.mSavedSuctionCoord[2];
-            if (!w.blockExists(cx, cy, cz)) return;
-            TileEntity te = w.getTileEntity(cx, cy, cz);
-            if (te instanceof IGregTechTileEntity gte
-                && gte.getMetaTileEntity() instanceof MTEHatchPressurizedFluid ph) {
-                pump.mSuctionHatch = ph;
-            } else {
-                missingOrChanged = true;
-            }
-        } else {
-            missingOrChanged = true;
-        }
-
+        Boolean ports = pump.host.restoreLoopPorts(w);
+        if (ports == null) return;
+        if (!ports) missingOrChanged = true;
         if (pump.mEngine.getSegments()
             .isEmpty()) {
             missingOrChanged = true;
@@ -214,7 +188,7 @@ final class CoolantPumpLoopBinding {
                     }
                     if (dev instanceof MTEMultiBlockBase multiblock) MultiblockStartup.formNow(multiblock);
                     if (seenDeviceIds.add(dev.getDeviceId())) {
-                        dev.setLoopPump(pump);
+                        dev.setLoopPump(pump.host);
                         pump.mLoopDevices.add(dev);
                     }
                 }
@@ -249,7 +223,7 @@ final class CoolantPumpLoopBinding {
                 pump.mLastCrawlResult.graphEdges);
         }
 
-        if (pump.mLoopState == MTECoolantPump.LoopState.CIRCULATING && pump.isAllowedToWork()) {
+        if (pump.mLoopState == CoolantPumpCore.LoopState.CIRCULATING && pump.isAllowedToWork()) {
             aBaseMetaTileEntity.setActive(true);
             pump.mEngine.setPumpPowered(true);
         }
@@ -259,12 +233,12 @@ final class CoolantPumpLoopBinding {
      * Why the formed loop no longer exists, or null if it still does: the pump's own structure broke, a device's
      * machine was removed or unformed, or a pipe or device block in a loaded chunk changed since the loop formed.
      */
-    static LocalizedText findLoopBreak(MTECoolantPump pump, World world) {
+    static LocalizedText findLoopBreak(CoolantPumpCore pump, World world) {
         IGregTechTileEntity base = pump.getBaseMetaTileEntity();
         if (pump.mNeedsPostLoadRebind) return null;
         // Multiblocks report unformed until their first structure check after a load
         boolean settled = base != null && base.getTimer() > pump.STRUCTURE_SETTLE_TICKS;
-        if (!pump.mMachine && settled) {
+        if (!pump.host.isPumpStructureFormed() && settled) {
             return LocalizedText.of(
                 "modularnuclear.coolant_loop.crawler.loop_broken",
                 base.getXCoord(),
@@ -304,13 +278,13 @@ final class CoolantPumpLoopBinding {
     /**
      * Keeps loaded every chunk the formed loop occupies: the pump, its pipes and the whole structure of each device.
      */
-    static void updateLoopChunks(MTECoolantPump pump) {
+    static void updateLoopChunks(CoolantPumpCore pump) {
         IGregTechTileEntity base = pump.getBaseMetaTileEntity();
         World world = base != null ? base.getWorld() : null;
         if (world == null || world.isRemote) return;
         int x = base.getXCoord(), y = base.getYCoord(), z = base.getZCoord();
         Set<Long> chunks = new HashSet<>();
-        pump.collectPumpChunks(base, pump.mWidth, chunks);
+        pump.host.collectPumpChunks(chunks, false);
         if (pump.mLastCrawlResult != null && pump.mLastCrawlResult.pipePositions != null) {
             for (LoopGraphCrawler.BlockPosCoord p : pump.mLastCrawlResult.pipePositions) {
                 StructureChunks.addBlock(p.x, p.z, chunks);
@@ -329,7 +303,7 @@ final class CoolantPumpLoopBinding {
     }
 
     /** Records the loop's pipe blocks; none after a load, until the first crawl finds them again. */
-    static void captureFootprint(MTECoolantPump pump, World world) {
+    static void captureFootprint(CoolantPumpCore pump, World world) {
         Set<LoopGraphCrawler.BlockPosCoord> positions = pump.mLastCrawlResult.pipePositions;
         if (positions == null || positions.isEmpty()) return;
         int[] coords = new int[3 * positions.size()];
@@ -347,13 +321,13 @@ final class CoolantPumpLoopBinding {
         pump.mFootprintBlocks = blocks;
     }
 
-    static void onDeviceDisconnected(MTECoolantPump pump, ICoolantLoopDevice device, LocalizedText reason) {
+    static void onDeviceDisconnected(CoolantPumpCore pump, ICoolantLoopDevice device, LocalizedText reason) {
         if (pump.mLoopAtRest) return;
         pump.mActiveCrawl = null;
         pump.mRecrawlKeepsState = false;
         boolean wasActiveLoop = pump.mLoopFormed
-            && (pump.mCurrentFillLiters > 0L || pump.mLoopState == MTECoolantPump.LoopState.CIRCULATING
-                || pump.mLoopState == MTECoolantPump.LoopState.DECELERATING
+            && (pump.mCurrentFillLiters > 0L || pump.mLoopState == CoolantPumpCore.LoopState.CIRCULATING
+                || pump.mLoopState == CoolantPumpCore.LoopState.DECELERATING
                 || (pump.mEngine != null && pump.mEngine.getVolumetricFlowRate() > 1e-5));
 
         LoopSegment deviceSeg = null;
