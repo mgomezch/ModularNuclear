@@ -1,0 +1,172 @@
+# Refrigeration gas loops: design
+
+Status: design for the `refrigeration-loops` branch.  This document describes what the branch builds and why; once
+it lands, the operator's manual and the Notes in the code describe how things are, and this file can go.
+
+## Goals
+
+- Closed loops that carry a gas instead of a liquid, built from the same pump, Railcraft reservoir, high-pressure
+  pipes, manifolds, instruments and hatches as liquid coolant loops.
+- Two refrigeration cycles:
+  - **Vapour compression** (condensing gases): compressor, condenser, expansion valve, evaporator.  R-134a,
+    ammonia (R-717), propane (R-290) and CO2 (R-744).
+  - **Reverse Brayton** (permanent gases): compressor, aftercooler, recuperator, turbo-expander, cold load.
+    Helium, nitrogen and argon.
+- An HV R-134a loop that fully replaces the Vacuum Freezer for hot ingots, through a Coolant Bath, with its heat
+  rejected to ambient by a Radiator.  Later tiers recover the heat with a PHE instead.
+- Reactor passages on a gas loop exchange very little heat, so gas loops don't upset the reactor's balance.
+- EU cost follows the thermodynamics: a compressor spends work, and the coefficient of performance comes out of the
+  cycle (a fraction of Carnot between the evaporator and the condenser).  Cooling near ambient is cheap; cryogenic
+  cooling is dear.
+
+Out of scope: the standalone web simulator (it keeps modelling liquid loops).
+
+## The gas model
+
+Each gas is a `GasProperty`: molar mass, ideal-gas vapour heat capacity `cp_v`, liquid density and heat capacity,
+a reference latent heat, and a saturation curve fitted through its normal boiling point (or triple point, for
+CO2) and its critical point:
+
+    ln P_sat(T) = A - B / T            (Clausius-Clapeyron through two points)
+    L(T) = L_0 ((T_c - T) / (T_c - T_0))^0.38      (Watson)
+
+| Gas | M (g/mol) | T_ref (K), P_ref (bar) | T_c (K), P_c (bar) | L at T_ref (kJ/kg) | freezes (°C) |
+| :-- | --: | :-- | :-- | --: | --: |
+| R-134a | 102.0 | 247.1, 1.013 | 374.2, 40.6 | 217 | -103.3 |
+| Ammonia | 17.03 | 239.8, 1.013 | 405.4, 113.3 | 1370 | -77.7 |
+| Propane | 44.10 | 231.0, 1.013 | 369.8, 42.5 | 426 | -187.7 |
+| CO2 | 44.01 | 216.6, 5.18 | 304.1, 73.8 | 350 | -56.6 |
+| Nitrogen | 28.01 | 77.4, 1.013 | 126.2, 34.0 | 199 | -210.0 |
+| Argon | 39.95 | 87.3, 1.013 | 150.7, 48.6 | 161 | -189.3 |
+| Helium | 4.003 | 4.22, 1.013 | 5.19, 2.27 | 20.7 | none |
+
+The fit is good where loops run: R-134a 10.0 bar at 40 °C (real 10.2) and 1.96 bar at -10 °C (real 2.01); CO2
+64.6 bar at 25 °C (real 64.3).
+
+A segment's state is its pressure P (that of its pressure zone, below) and its specific enthalpy h.  From them:
+
+- subcooled liquid (h at or below saturated liquid): T from `cp_l`, density `rho_l`;
+- two-phase: T = T_sat(P), quality x, density from the mixture of saturated vapour (ideal gas) and liquid;
+- vapour (h at or above saturated vapour): T from `cp_v` above T_sat, density P / (R T);
+- above the critical pressure, liquid below T_c and gas above.
+
+Entropy is defined to match (the ideal-gas formula for vapour, latent heat over T across the dome, `cp_l ln T`
+below it), so a compressor or expander finds its isentropic outlet by bisection on h at the outlet pressure.  An
+ideal gas throttled through a valve keeps its temperature, so only condensing gases cool through a valve; the
+Brayton cycle cools by taking work out in an expander.
+
+## The gas loop engine
+
+`GasLoopEngine` extends `CoolantLoopEngine`, so the pump, its NBT, its GUI and the instruments keep working with
+it.  A liquid loop has one incompressible flow; a gas loop has:
+
+- **Pressure zones.**  Pressure stages (compressors, valves, expanders) split the loop.  A zone is a connected
+  run of segments between stages, with one pressure.  Friction inside a zone is shown, not modelled in the state.
+- **Zone mass.**  Each zone holds a mass of gas.  Each tick every stage moves mass from its upstream zone to its
+  downstream zone, and the zone's pressure is solved so that its segments, each at its own enthalpy, hold its
+  mass: `sum rho(P, h_i) V_i = m_z` (monotonic in P; safeguarded Newton in log P).  A liquid-full zone has a small
+  compressibility, so an overcharged high side drives the pressure up until a pipe bursts, as in reality.
+- **Enthalpy advection.**  The loop's existing implicit advection (`LoopAdvection`) carries h instead of T, with
+  each segment's mass as its capacity and its zone's mass flow as its inflow.  A stage's segment is a source at
+  the stage's outlet enthalpy.
+- **Heat exchange** acts on enthalpy: a device adds or removes joules from a segment, and a segment's temperature
+  follows from its state.  Two-phase segments exchange at constant temperature, which is what makes a condenser
+  and an evaporator work.
+- **Failures:** a segment above its pipe's rating bursts (`BURST`), one below the gas's freezing point freezes
+  (`FROZE`), as in liquid loops.
+
+Pressure stages (`IGasPressureStage`), each the physics of one device:
+
+- **Compressor:** mass flow = volumetric efficiency x suction density x displacement x speed; isentropic outlet
+  enthalpy with an isentropic efficiency.  It draws EU for its shaft work, at a configured joules per EU, and slows
+  to what its energy hatches can give.  It doesn't run backwards.  Liquid at its suction (quality below 0.9) is
+  *slugging*: it wears the compressor (maintenance issues) and it pumps less.
+- **Expansion valve:** an orifice, `m = C A sqrt(2 rho_in dP)` (choked for vapour), isenthalpic.  Its opening is
+  manual (screwdriver) or thermostatic: it opens and closes to hold a set superheat at the outlet of the zone it
+  feeds, as a real TXV does.
+- **Turbo-expander:** a nozzle (choked flow) and an isentropic expansion with an efficiency.  The work goes to a
+  dynamo hatch as EU (times a generator efficiency); with no dynamo, or a full one, it free-wheels: the gas passes
+  without expanding work out, and so without cooling.
+
+A stopped compressor passes nothing; a valve or expander keeps passing flow, so a stopped loop equalizes.
+
+## The pump on a gas loop
+
+The pump stays the loop's owner: it crawls, keeps the chunks loaded, holds the reservoir and charges the loop from
+it.  On a gas loop:
+
+- it needs no rotor and draws power only while charging or recovering the charge;
+- its *fill* is the loop's **charge**, in litres of gas at 0 °C and 1 atm.  The required charge follows from the
+  loop's volume: for a condensing gas, enough to hold a set fraction of the loop's volume as liquid at ambient (30%
+  by default); for a permanent gas, enough for a set charge pressure at ambient (10 bar by default).  A
+  screwdriver on the controller cycles the setting;
+- while charging the loop sits at equilibrium at the reservoir's temperature;
+- allowing it to work runs the loop: the compressors may run only while the pump does;
+- disabling its discharge hatch stops the compressors, lets the loop equalize, then recovers the charge into the
+  reservoir.
+
+## Devices
+
+All devices enter and leave the loop through high-pressure hatches, as the existing ones do.
+
+| Device | Structure | Does |
+| :-- | :-- | :-- |
+| **Gas Compressor** | 3x3, 3 to 9 long: Stable Titanium casings, gearbox rings (steel, titanium or tungstensteel) | Pressure stage; EU in |
+| **Expansion Valve** | 3x3x3 Frost Proof casings, a pipe casing at the centre | Pressure stage; no power |
+| **Turbo-Expander** | 3x3, 3 to 7 long: turbine casings, dynamo hatch | Pressure stage; EU out |
+| **Radiator** | 3 high, 3 to 9 long: air filter vent casings, air filter turbine (fan) rings | Rejects heat to ambient; EU for the fans |
+| **PHE** | as now, plus a dual-loop mode | Loop to Forge fluid, or loop to loop |
+| **Coolant Bath** | as now | Evaporator for items |
+
+Tiers: the compressor's displacement grows with its length and gearbox tier; its energy hatch tier caps its power.
+The radiator's fans set its conductance per ring and the EU each ring draws; it works on liquid loops too, and
+never cools below the pump's ambient temperature.  An HV R-134a loop is: steel pipes (35 bar), a steel-gearbox
+compressor on an HV hatch, a radiator, a valve and a coolant bath.
+
+**PHE dual-loop mode.**  The secondary GregTech hatches may be replaced by a second pair of high-pressure hatches.
+Each pair is its own device on its loop (the crawler gives them distinct segments), and the two pairs may be on
+two loops or on the same loop (a recuperator).  The PHE moves heat from the hotter side to the colder, `U = 1 /
+(1/h_a + 1/h_b)` over its effective area, capped so the sides don't cross, and draws its usual power.
+
+**PHE liquefaction.**  In single mode, with a gas loop colder than a secondary gas's boiling point by the approach
+temperature, the PHE condenses the gas (air, nitrogen, oxygen, argon, helium, R-134a and so on) into its liquid,
+putting the heat into the loop.  The heat per litre is the same EU-equivalent the PHE already uses for boiling
+those liquids, so boiling and condensing balance and nothing is created from a round trip.
+
+**Coolant Bath on a gas loop** exchanges with the gas as it does with liquid; an evaporating refrigerant at -20 °C
+cools hot ingots quickly.
+
+**Passages, heaters and degassers.**  A reactor passage on a gas loop exchanges at a small fraction of its liquid
+rate (`gasPassageHeatTransferMultiplier`, 0.02).  A heater works on gas as on liquid.  A degasser passes gas
+through without degassing.
+
+## R-134a chemistry
+
+GTNH has vinyl chloride, chlorine, HF and HCl but no trichloroethylene.  The chain, with GT++ catalysts in the
+Chemical Plant:
+
+1. LCR: vinyl chloride + 2 Cl2 -> trichloroethylene + 2 HCl.
+2. Chemical Plant (Solid Acid Catalyst, standing in for the Lewis-acid SbCl5 of the liquid-phase process):
+   trichloroethylene + 3 HF -> HCFC-133a (CF3CH2Cl) + 2 HCl.
+3. Chemical Plant (Brown Metal Catalyst, nickel and aluminium, for the gas-phase fluorination over a metal
+   catalyst): HCFC-133a + HF -> R-134a + HCl.
+
+Trichloroethylene and HCFC-133a are new fluids; R-134a is a new gas.  The HCl goes back to chlorine through the
+usual electrolysis.
+
+## Energy accounting
+
+A compressor's shaft work costs EU at `compressorJoulesPerEU` (`devices.yaml`), and an expander returns EU at the
+same rate times its generator efficiency.  The default follows the manual's existing equivalence (one EU is
+28,250 J of turbine heat), calibrated after the in-world test so that an HV R-134a loop costs well below the
+Vacuum Freezer's EU for ingots, and a Brayton loop more than the freezer for liquid nitrogen.
+
+## Tests
+
+- Unit: gas properties against reference points, state round trips, isentropic compression, the valve's flash,
+  the zone pressure solve, mass and energy conservation, and two whole cycles run to steady state: an R-134a
+  vapour-compression loop (about 2 bar and 10 bar, COP between 2 and 4) and a helium Brayton loop with a
+  recuperator (below 100 K).
+- In-world, on a hermetic dev instance: an HV R-134a loop cooling hot ingots in a Coolant Bath, and a helium Brayton
+  loop liquefying nitrogen in a PHE, each checked for state, pressures, temperatures and EU.
+- A demonstration world on the latest `-test` instance with both loops running.
