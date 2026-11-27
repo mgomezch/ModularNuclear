@@ -1436,6 +1436,8 @@ public class LoopGraphCrawler {
                         return visitDegasserHatch(step, hatch, degasser);
                     } else if (owner instanceof MTECoolantBath bath) {
                         return visitBathHatch(step, hatch, bath);
+                    } else if (owner instanceof IInlineLoopDevice inline) {
+                        return visitInlineLoopDevice(step, hatch, inline);
                     } else if (hatch.getOppositeHatchTile() != null || !hatch.isPassageInlet()) {
                         return visitPassageHatchPair(step, hatch);
                     }
@@ -1536,6 +1538,61 @@ public class LoopGraphCrawler {
                 }
             }
             return CoolantPipingRegistry.getProperties(lastPipe);
+        }
+
+        /** A loop hatch of a generic in-line device: the loop runs through it as a run of its feeding pipe. */
+        private Visit visitInlineLoopDevice(FrontierStep step, MTEHatchPressurizedFluid hatch, IInlineLoopDevice dev) {
+            if (!dev.isLoopReady()) {
+                finishWithFailure("modularnuclear.coolant_loop.crawler.device_unformed", step.x, step.y, step.z);
+                return Visit.STOP;
+            }
+            MTEHatchPressurizedFluid outlet = dev.getLoopOutlet();
+            if (outlet == hatch || !hatch.isInput() || outlet == null) {
+                finishWithFailure("modularnuclear.coolant_loop.crawler.device_output", step.x, step.y, step.z);
+                return Visit.STOP;
+            }
+            if (pump != null) dev.setLoopPump(pump);
+            if (!devices.contains(dev)) devices.add(dev);
+            CoolantPipingRegistry.PipeProperties pipeProps = attachedPipe(step);
+            double maxTemp = Double.isNaN(dev.getLoopMaxTemperatureCelsius()) ? pipeProps.maxTemperatureCelsius
+                : Math.min(pipeProps.maxTemperatureCelsius, dev.getLoopMaxTemperatureCelsius());
+            LoopSegment devSeg = new LoopSegment(
+                dev.getDeviceId(),
+                step.x,
+                step.y,
+                step.z,
+                Math.max(1.0, dev.getLoopLengthMeters()),
+                pipeProps.diameter,
+                pipeProps.roughness,
+                dev.getMinorLossK(),
+                pipeProps.maxPressureBar,
+                maxTemp,
+                dev.getDeviceTemperatureCelsius());
+            devSeg.setCustomVolumeM3(Math.max(1e-4, dev.getLoopVolumeM3()));
+            devSeg.setCapacityLiters(dev.getFillVolumeLiters());
+            devSeg.setFrictionMultiplier(pipeProps.frictionMultiplier);
+            segments.add(devSeg);
+
+            IGregTechTileEntity outTE = outlet.getBaseMetaTileEntity();
+            visitedPipeAndDevicePositions
+                .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
+            ForgeDirection outFacing = outTE.getFrontFacing();
+            LoopId id = LoopId.of(dev.getDeviceId());
+            // Recorded as its inlet hatch, which a load finds the device by (LoopDevices.at and
+            // ILoopHatchOwner.deviceOf)
+            addGraphNode(graphNodes, id, NodeType.DEVICE, dev.getLoopInlet() != null ? dev.getLoopInlet() : dev);
+            addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, id);
+            frontier.add(
+                new FrontierStep(
+                    id,
+                    outTE.getXCoord() + outFacing.offsetX,
+                    outTE.getYCoord() + outFacing.offsetY,
+                    outTE.getZCoord() + outFacing.offsetZ,
+                    outFacing.getOpposite(),
+                    step.segmentThickness,
+                    step.segmentPipeAmount,
+                    id));
+            return Visit.NEXT;
         }
 
         /** A pressurized hatch of a heat exchanger. */

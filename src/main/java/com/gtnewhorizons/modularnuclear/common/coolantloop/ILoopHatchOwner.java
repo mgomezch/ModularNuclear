@@ -18,4 +18,12 @@ public interface ILoopHatchOwner extends ICoolantLoopDevice {
     default boolean ownsHatch(MTEHatchPressurizedFluid hatch) {
         return hatch != null && (hatch == getLoopInlet() || hatch == getLoopOutlet());
     }
+
+    /**
+     * The device a hatch this owner owns belongs to: the owner itself, or for a multiblock with more than one pair
+     * of loop hatches (a PHE joining two loops), the side the hatch is on.
+     */
+    default ICoolantLoopDevice deviceOf(MTEHatchPressurizedFluid hatch) {
+        return this;
+    }
 }
