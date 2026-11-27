@@ -140,12 +140,9 @@ public class NEICompactLoopHandler extends TemplateRecipeHandler {
         String name = page.stack.item.getDisplayName();
         float scale = Math.min(1.0f, 126.0f / Math.max(1, GuiDraw.getStringWidth(name)));
         NEIFuelStatsHandler.drawScaledString(name, 34, 10, scale, palette.ink);
-        GuiDraw.drawString(
-            StatCollector.translateToLocal("modularnuclear.nei.compact.kind." + page.kind.name),
-            34,
-            20,
-            palette.label,
-            false);
+        String kind = StatCollector.translateToLocal("modularnuclear.nei.compact.kind." + page.kind.name);
+        float kindScale = Math.min(1.0f, 126.0f / Math.max(1, GuiDraw.getStringWidth(kind)));
+        NEIFuelStatsHandler.drawScaledString(kind, 34, 20, kindScale, palette.label);
         int y = 38;
         for (String[] row : page.rows) {
             GuiDraw.drawString(StatCollector.translateToLocal(row[0]), 9, y, palette.label, false);
