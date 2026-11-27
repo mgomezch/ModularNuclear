@@ -92,10 +92,14 @@ public class MTECompactLoopPump extends MTETieredMachineBlock implements ICoolan
         return base != null && base.isAllowedToWork();
     }
 
-    /** Its structure is the tanks on it: without a valid stack it looks for no loop. */
+    /**
+     * It has no structure to break. Its tanks are no part of one: a pump whose tanks are taken away keeps its loop,
+     * waits for gas if the loop is empty and has nowhere to return a charge to, where a multiblock pump whose
+     * structure breaks under a running loop bursts it.
+     */
     @Override
     public boolean isPumpStructureFormed() {
-        return tanks().problem() == null;
+        return true;
     }
 
     /** Nothing to shut down: the pump carries on when its power returns. */
@@ -202,9 +206,10 @@ public class MTECompactLoopPump extends MTETieredMachineBlock implements ICoolan
     public void onPostTick(IGregTechTileEntity base, long tick) {
         super.onPostTick(base, tick);
         if (!base.isServerSide()) return;
-        String problem = tanks().problem();
-        if (problem != null && !mCore.isLoopFormed()) mCore.setLoopStatusKey(problem);
         mCore.onPostTick(base, tick);
+        // Without tanks an empty loop has nothing to charge from: say so in place of the core's own line
+        String problem = tanks().problem();
+        if (problem != null && mCore.getCurrentFillLiters() <= 0L) mCore.setLoopStatusKey(problem);
     }
 
     @Override
