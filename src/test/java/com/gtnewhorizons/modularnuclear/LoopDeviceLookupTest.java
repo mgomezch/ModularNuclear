@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import net.minecraft.world.World;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopDevices;
@@ -18,6 +19,12 @@ import gregtech.api.metatileentity.BaseMetaTileEntity;
 
 /** A loop crawl attributes a high-pressure hatch only to the device that owns it, never to a nearby one. */
 public class LoopDeviceLookupTest {
+
+    // Mocking a GregTech multiblock initializes its class, which needs FML's loader: run first, this test sets it up
+    @BeforeAll
+    static void initEnvironment() {
+        TestEnvironmentHelper.init();
+    }
 
     private static BaseMetaTileEntity at(World world, int x, int y, int z, IMetaTileEntity mte) {
         BaseMetaTileEntity te = mock(BaseMetaTileEntity.class);
