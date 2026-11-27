@@ -51,6 +51,9 @@ import gregtech.api.metatileentity.implementations.MTEFluidPipe;
  */
 public class LoopGraphCrawler {
 
+    /** Share of a coolant bath's fill volume its gas-loop evaporator holds: 20 L of every 1000 L slot. */
+    public static final double BATH_GAS_VOLUME_SHARE = 0.02;
+
     /**
      * Represents the flow configuration of a single pipe block along the crawled loop.
      * Sets "input disabled" on the forward side (towards coolant flowing out) and
@@ -1723,6 +1726,9 @@ public class LoopGraphCrawler {
                 bath.getDeviceTemperatureCelsius());
             devSeg.setCapacityLiters(bath.getFillVolumeLiters());
             devSeg.setCustomVolumeM3(bath.getFillVolumeLiters() / 1000.0);
+            // On a gas loop the bath is an evaporator, a coil around each slot, not a pool. See Note [Gas loop pressure
+            // zones]
+            devSeg.setGasVolumeM3(bath.getFillVolumeLiters() / 1000.0 * BATH_GAS_VOLUME_SHARE);
             segments.add(devSeg);
 
             MTEHatchPressurizedFluid outlet = bath.getPrimaryOutlet();

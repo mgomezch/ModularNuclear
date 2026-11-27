@@ -98,7 +98,10 @@ Wrinkles:
      pressure at its present enthalpies (zoneCutoutMass), less what it holds.  The zone's compliance would not do:
      a two-phase zone takes mass easily until it is full of liquid, which takes almost none (wrinkle (W2) of Note
      [The gas model]), and one tick of a compressor pushing into an overcharged high side took a test loop from 14
-     bar to 756.  A loop can still burst, from heat
+     bar to 756.  The compressor's hot gas also raises a zone's pressure at the same mass, so the cutout also
+     latches: a compressor whose discharge reaches CUTOUT_LATCH_FRACTION of the rating stops until it falls below
+     CUTOUT_RELEASE_FRACTION (stageCutOut).  In game a coolant bath full of hot ingots on an overcharged loop
+     burst its high side at 40 bar on 35 bar pipe before the latch.  A loop can still burst, from heat
      raising its pressure or from a valve or expander passing too much, but not from its compressor alone.
 
 GasLoopEngineTest runs whole vapour-compression and Brayton cycles to steady state and checks mass and energy.
@@ -114,7 +117,10 @@ public class GasLoopEngine extends CoolantLoopEngine {
     /** How far a step takes each segment's mass towards what its density holds. See wrinkle (W8) */
     static final double MASS_RELAXATION = 0.5;
     /** Share of its zone's weakest rating a compressor's discharge is held to. See wrinkle (W9) */
-    public static final double CUTOUT_FRACTION = 0.95;
+    public static final double CUTOUT_FRACTION = 0.85;
+    /** Discharge pressure (share of the rating) that stops a compressor, and that lets it start again. */
+    public static final double CUTOUT_LATCH_FRACTION = 0.9;
+    public static final double CUTOUT_RELEASE_FRACTION = 0.8;
 
     private final GasProperty gas;
     private final Map<LoopId, GasPressureStage> stages = new HashMap<>();
@@ -142,6 +148,7 @@ public class GasLoopEngine extends CoolantLoopEngine {
     private int[][] downstreams = new int[0][];
     private int[][] zoneOrder = new int[0][];
     private double[] zoneMaxPressure = new double[0], zoneCutoutMass = new double[0];
+    private boolean[] stageCutOut = new boolean[0];
 
     // Scratch
     private double[] cap = new double[0], inflow = new double[0], source = new double[0], value = new double[0],
@@ -231,7 +238,7 @@ public class GasLoopEngine extends CoolantLoopEngine {
 
     public double getTotalVolumeM3() {
         double v = 0.0;
-        for (LoopSegment s : segments) v += s.getVolume();
+        for (LoopSegment s : segments) v += s.getGasVolume();
         return v;
     }
 
@@ -260,7 +267,7 @@ public class GasLoopEngine extends CoolantLoopEngine {
         double[] ph = equilibriumState(gas, rho, temperatureK);
         for (LoopSegment s : segments) {
             s.setGasEnthalpy(ph[1]);
-            s.setGasMassKg(rho * s.getVolume());
+            s.setGasMassKg(rho * s.getGasVolume());
             s.takePendingGasHeatJoules();
             s.setGasMassFlow(0.0);
         }
@@ -379,7 +386,7 @@ public class GasLoopEngine extends CoolantLoopEngine {
         for (int i = 0; i < n; i++) {
             gas.state(zonePressure[zoneOf[i]], value[i], st);
             target[i] = st.density * segments.get(i)
-                .getVolume();
+                .getGasVolume();
             tempK[i] = st.temperatureK;
             quality[i] = st.quality;
         }
@@ -533,6 +540,10 @@ public class GasLoopEngine extends CoolantLoopEngine {
         int up = stageUpZone[k], down = stageDownZone[k];
         double limit = 0.25 * zoneMass[up] / dt;
         if (!stageImpl[k].isPassive() && Double.isFinite(zoneMaxPressure[down])) {
+            double p = zonePressure[down], pMax = zoneMaxPressure[down];
+            if (p >= CUTOUT_LATCH_FRACTION * pMax) stageCutOut[k] = true;
+            else if (p < CUTOUT_RELEASE_FRACTION * pMax) stageCutOut[k] = false;
+            if (stageCutOut[k]) return 0.0;
             limit = Math.min(limit, 0.5 * Math.max(0.0, zoneCutoutMass[down] - zoneMass[down]) / dt);
         }
         if (stageImpl[k].isPassive()) {
@@ -693,7 +704,7 @@ public class GasLoopEngine extends CoolantLoopEngine {
         double m = 0.0;
         for (int i : members) {
             LoopSegment s = segments.get(i);
-            m += gas.density(p, s.getGasEnthalpy(), ts, hg, latent) * s.getVolume();
+            m += gas.density(p, s.getGasEnthalpy(), ts, hg, latent) * s.getGasVolume();
         }
         return m;
     }
@@ -780,6 +791,7 @@ public class GasLoopEngine extends CoolantLoopEngine {
         buildFlowOrder(n);
         zoneMaxPressure = new double[zoneCount];
         zoneCutoutMass = new double[zoneCount];
+        stageCutOut = new boolean[stageCount];
         Arrays.fill(zoneMaxPressure, Double.POSITIVE_INFINITY);
         for (int i = 0; i < n; i++) {
             LoopSegment s = segments.get(i);

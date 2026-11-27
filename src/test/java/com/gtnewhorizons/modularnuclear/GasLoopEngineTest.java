@@ -252,15 +252,20 @@ public class GasLoopEngineTest {
 
     @Test
     public void compressorOnAFloodedEvaporatorStaysBelowThePipesRating() {
-        // As in game: a coolant bath's 15 m^3 is most of the loop, steel pipe (35 bar), a 60 m^3/s compressor, and
-        // the whole charge liquid at the start. See wrinkle (W9) of Note [Gas loop pressure zones]
+        // As in game: a coolant bath of hot ingots as the evaporator, steel pipe (35 bar), a 60 m^3/s compressor.
+        // See wrinkle (W9) of Note [Gas loop pressure zones]
         GasProperty gas = GasProperty.R134A;
         GasLoopEngine e = new GasLoopEngine(gas);
         List<LoopSegment> l = new ArrayList<>();
         String[] ids = { "comp", "c1", "c2", "c3", "valve", "bath", "p1" };
         for (String id : ids) {
             LoopSegment s = new LoopSegment(id, 1.0, 0.1, 0.000045, 0.05, 35.0, 1000.0, 20.0);
-            if (id.equals("bath")) s.setCustomVolumeM3(15.0);
+            if (id.equals("bath")) {
+                s.setCustomVolumeM3(15.0);
+                s.setGasVolumeM3(0.3);
+            }
+            // The compressor and a 7-ring radiator, as in game
+            if (id.startsWith("c")) s.setCustomVolumeM3(0.1);
             l.add(s);
         }
         for (int i = 0; i < l.size(); i++) l.get(i)
@@ -274,14 +279,32 @@ public class GasLoopEngineTest {
         e.equilibrate(GasLoopEngine.requiredChargeKg(gas, e.getTotalVolumeM3(), ambient, 0.1, 0), ambient);
         e.setPumpPowered(true);
         double peak = 0;
-        for (int t = 0; t < 1200; t++) {
+        for (int t = 0; t < 2400; t++) {
             e.step(DT);
-            if (e.isRuptured()) break;
+            assertFalse(
+                e.isRuptured(),
+                () -> e.getFailureReason() + " at " + java.util.Arrays.toString(e.getZonePressures()));
             for (String id : new String[] { "c1", "c2", "c3" }) {
                 SegmentHeat.exchangeThrough(gas, find(e, id), ambient, 7e6, DT);
             }
-            SegmentHeat.exchangeThrough(gas, find(e, "bath"), 400 + C, 2e5, DT);
+            // Hot tungstensteel ingots, about 200 MW
+            LoopSegment bath = find(e, "bath");
+            SegmentHeat.exchangeThrough(gas, bath, Math.min(1500 + C, SegmentHeat.coilBoundK(gas, bath)), 1.5e5, DT);
             peak = Math.max(peak, e.getPeakLoopPressureBar());
+            if (t % 400 == 0) System.out.printf(
+                "  t=%d P=%s comp %.1f valve %.1f kg/s bath %.1f C x=%.2f%n",
+                t,
+                java.util.Arrays.toString(e.getZonePressures()),
+                e.getStageMassFlow(find(e, "comp").getKey()),
+                e.getStageMassFlow(find(e, "valve").getKey()),
+                find(e, "bath").getCurrentTemperatureCelsius(),
+                find(e, "bath").getGasQuality());
+            if (t % 400 == 0) System.out.printf(
+                "     valve opening %.3f, c3 x=%.2f T=%.1f, comp seg T=%.1f%n",
+                valve.opening,
+                find(e, "c3").getGasQuality(),
+                find(e, "c3").getCurrentTemperatureCelsius(),
+                find(e, "comp").getCurrentTemperatureCelsius());
         }
         System.out.printf(
             "flooded evaporator: zones %s bar, peak %.1f bar%n",

@@ -330,8 +330,9 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
     /**
      * The bath on a gas loop (the evaporator of a refrigeration loop): the same exchange as on a liquid loop, with
      * the convection scaled by the gas's phase (SegmentHeat.phaseFactor), and the heat put into the gas flowing
-     * through (SegmentHeat). What the gas can take before it reaches the hottest item limits every slot alike, so
-     * no item cools by more than the gas takes up.
+     * through (SegmentHeat). What the gas can take before it reaches the hottest item, or the coil's bound
+     * (SegmentHeat.coilBoundK), limits every slot alike, so no item cools by more than the gas takes up, and items
+     * cool as fast as the loop's flow carries their heat away.
      */
     private void exchangeWithGas(GasProperty gas, double flowM3s, double dt, LoopSegment segment) {
         double velocity = segment.getArea() > 0 ? flowM3s / segment.getArea() : 0.0;
@@ -359,7 +360,8 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
             coldestC = Math.min(coldestC, slot.currentTemp);
         }
         if (total == 0.0) return;
-        double boundK = (total > 0 ? hottestC : coldestC) + 273.15;
+        double boundK = (total > 0 ? Math.min(hottestC + 273.15, SegmentHeat.coilBoundK(gas, segment))
+            : coldestC + 273.15);
         double moved = SegmentHeat.exchange(gas, segment, boundK, total, dt);
         double scale = moved / total;
         for (int i = 0; i < mSlots.length; i++) {

@@ -526,6 +526,18 @@ public class LoopSegment {
 
     // --- Gas loops (GasLoopEngine): see Note [Gas loop pressure zones] ---
 
+    /** Volume the segment holds on a gas loop, m^3, if not its volume (a coolant bath's); negative for none. */
+    private double gasVolumeM3 = -1.0;
+
+    /** What the segment holds of a gas loop's gas, m^3: its own gas volume if it has one, else its volume. */
+    public double getGasVolume() {
+        return gasVolumeM3 >= 0.0 ? gasVolumeM3 : getVolume();
+    }
+
+    public void setGasVolumeM3(double m3) {
+        this.gasVolumeM3 = m3;
+    }
+
     /** Specific enthalpy of the gas in J/kg; NaN on a liquid loop. */
     private double gasEnthalpy = Double.NaN;
     private double gasMassKg = 0.0;
@@ -688,6 +700,7 @@ public class LoopSegment {
         if (customVolumeM3 >= 0.0) {
             m.put("customVol", customVolumeM3);
         }
+        if (gasVolumeM3 >= 0.0) m.put("gasVol", gasVolumeM3);
         if (holdsGas()) {
             m.put("gasH", gasEnthalpy);
             m.put("gasM", gasMassKg);
@@ -730,6 +743,7 @@ public class LoopSegment {
         if (m.containsKey("cap")) seg.setCapacityLiters(StateValues.lng(m, "cap", 0L));
         if (m.containsKey("manifold")) seg.setManifold(StateValues.bool(m, "manifold", false));
         if (m.containsKey("customVol")) seg.setCustomVolumeM3(StateValues.dbl(m, "customVol", 0.0));
+        if (m.containsKey("gasVol")) seg.setGasVolumeM3(StateValues.dbl(m, "gasVol", -1.0));
         if (m.containsKey("gasH")) {
             seg.setGasEnthalpy(StateValues.dbl(m, "gasH", 0.0));
             seg.setGasMassKg(StateValues.dbl(m, "gasM", 0.0));

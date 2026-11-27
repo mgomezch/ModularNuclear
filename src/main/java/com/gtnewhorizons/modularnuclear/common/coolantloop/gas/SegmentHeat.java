@@ -27,6 +27,21 @@ public final class SegmentHeat {
         return TWO_PHASE_FACTOR;
     }
 
+    /** How far past its saturation (or inlet) temperature a coil heats the gas flowing through it, K. */
+    public static final double COIL_SUPERHEAT_K = 50.0;
+
+    /**
+     * The hottest a coil of gas in a hot body (a coolant bath's items) takes the gas: COIL_SUPERHEAT_K past its
+     * saturation temperature or its inlet temperature, whichever is higher. Gas flowing through a coil in a body at
+     * 1500 °C leaves far below it, and a starved coil that let its vapour reach the body's temperature would melt
+     * its loop within a second; past the bound the body cools only as fast as the flow takes its heat.
+     */
+    public static double coilBoundK(GasProperty gas, LoopSegment s) {
+        double ts = gas.saturationTemperature(pressurePa(s));
+        double in = s.getIncomingTemperatureCelsius() + 273.15;
+        return Math.max(ts, in) + COIL_SUPERHEAT_K;
+    }
+
     /** Pressure (Pa) of the segment's gas. */
     public static double pressurePa(LoopSegment s) {
         return s.getInletPressureBar() * 1e5;
