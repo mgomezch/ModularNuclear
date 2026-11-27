@@ -370,7 +370,9 @@ public final class GasProperty {
         return Math.exp(satA - satB / Math.max(temperatureK, 1e-3));
     }
 
-    /** Latent heat of vaporization in J/kg at a saturation temperature in K. See wrinkle (W1) of Note [The gas model] */
+    /**
+     * Latent heat of vaporization in J/kg at a saturation temperature in K. See wrinkle (W1) of Note [The gas model]
+     */
     public double latentHeat(double saturationTemperatureK) {
         double t = Math.min(saturationTemperatureK, criticalTemperatureK);
         return Math.max(0.0, latentHeatAtReference + (cpVapor - cpLiquid) * (t - referenceTemperatureK));

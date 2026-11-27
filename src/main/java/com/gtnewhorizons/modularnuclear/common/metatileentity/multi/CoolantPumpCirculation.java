@@ -10,6 +10,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
@@ -64,6 +65,11 @@ final class CoolantPumpCirculation {
 
         p.mReservoir.updateReservoirState();
         p.mEngine.setHoldsCoolant(p.mCurrentFillLiters > 0);
+
+        // See Note [The pump on a gas loop]
+        GasProperty loopGas = CoolantPumpGasLoop.loopGas(p, p.getReservoirFluid());
+        if (loopGas != null) return CoolantPumpGasLoop.step(p, baseTE, loopGas);
+        if (p.mCurrentFillLiters <= 0L) CoolantPumpGasLoop.useEngineFor(p, null);
 
         // Draw electrical power if allowed to work (soft hammer / redstone control)
         boolean isWorking = p.isAllowedToWork();
@@ -222,7 +228,7 @@ final class CoolantPumpCirculation {
         double flowRate = p.mEngine.getVolumetricFlowRate();
         for (MTECoolantPump.DeviceSegmentBinding b : p.getDeviceBindings()) {
             b.device.processThermalExchange(
-                MTECoolantPump.branchFlow(flowRate, b.segment),
+                b.segment != null ? p.mEngine.getLocalVolumetricFlow(b.segment) : flowRate,
                 0.05,
                 p.mEngine.getFluid(),
                 b.segment);

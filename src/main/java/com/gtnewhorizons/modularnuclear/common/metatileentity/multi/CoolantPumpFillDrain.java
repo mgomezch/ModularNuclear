@@ -192,7 +192,7 @@ final class CoolantPumpFillDrain {
                 double decelFlowRate = pump.mEngine.getVolumetricFlowRate();
                 for (MTECoolantPump.DeviceSegmentBinding b : pump.getDeviceBindings()) {
                     b.device.processThermalExchange(
-                        pump.branchFlow(decelFlowRate, b.segment),
+                        b.segment != null ? pump.mEngine.getLocalVolumetricFlow(b.segment) : decelFlowRate,
                         0.05,
                         pump.mEngine.getFluid(),
                         b.segment);

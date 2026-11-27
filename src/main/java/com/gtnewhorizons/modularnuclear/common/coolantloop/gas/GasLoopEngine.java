@@ -469,10 +469,15 @@ public class GasLoopEngine extends CoolantLoopEngine {
         int[] downs = downstreams[u];
         if (downs.length <= 1) return 1.0;
         double total = 0.0;
-        for (int j : downs) total += Math.max(0.0, segments.get(j)
-            .getFlowFraction());
-        return total > 0.0 ? Math.max(0.0, segments.get(d)
-            .getFlowFraction()) / total : 1.0 / downs.length;
+        for (int j : downs) total += Math.max(
+            0.0,
+            segments.get(j)
+                .getFlowFraction());
+        return total > 0.0 ? Math.max(
+            0.0,
+            segments.get(d)
+                .getFlowFraction())
+            / total : 1.0 / downs.length;
     }
 
     /**
@@ -531,8 +536,10 @@ public class GasLoopEngine extends CoolantLoopEngine {
         if (ups.length == 1) return value[ups[0]];
         double total = 0.0, h = 0.0;
         for (int u : ups) {
-            double w = Math.max(0.0, segments.get(u)
-                .getFlowFraction());
+            double w = Math.max(
+                0.0,
+                segments.get(u)
+                    .getFlowFraction());
             total += w;
             h += w * value[u];
         }
@@ -560,7 +567,9 @@ public class GasLoopEngine extends CoolantLoopEngine {
             s.setAdvectedTemperatureCelsius(st.temperatureCelsius());
             double inH = incoming.length > i && check ? incoming[i] : s.getGasEnthalpy();
             s.setGasIncomingEnthalpy(inH);
-            s.setIncomingTemperatureCelsius(gas.state(p, inH, st).temperatureCelsius());
+            s.setIncomingTemperatureCelsius(
+                gas.state(p, inH, st)
+                    .temperatureCelsius());
             gas.state(p, s.getGasEnthalpy(), st);
             s.setInletPressureBar(p / 1e5);
             s.setOutletPressureBar(p / 1e5);
@@ -679,8 +688,9 @@ public class GasLoopEngine extends CoolantLoopEngine {
         isStage = new boolean[n];
         int stageCount = 0;
         for (int i = 0; i < n; i++) {
-            if (stages.containsKey(segments.get(i)
-                .getKey())) {
+            if (stages.containsKey(
+                segments.get(i)
+                    .getKey())) {
                 isStage[i] = true;
                 stageCount++;
             }
@@ -718,8 +728,9 @@ public class GasLoopEngine extends CoolantLoopEngine {
         for (int i = 0; i < n; i++) {
             if (!isStage[i]) continue;
             stageSegment[k] = i;
-            stageImpl[k] = stages.get(segments.get(i)
-                .getKey());
+            stageImpl[k] = stages.get(
+                segments.get(i)
+                    .getKey());
             int upSeg = upstreams[i].length > 0 ? upstreams[i][0] : i;
             stageUpZone[k] = zoneOf[upSeg];
             stageDownZone[k] = zoneOf[i];

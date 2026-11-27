@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -289,6 +290,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 }
             }
             mDeviceBindings.add(new DeviceSegmentBinding(dev, seg));
+            CoolantPumpGasLoop.bindStages(this);
         }
     }
 
@@ -304,6 +306,25 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         for (ICoolantLoopDevice dev : mLoopDevices) {
             mDeviceBindings.add(new DeviceSegmentBinding(dev, segmentMap.get(dev.getDeviceId())));
         }
+        CoolantPumpGasLoop.bindStages(this);
+    }
+
+    /** The bindings as they are, without rebuilding them. */
+    List<DeviceSegmentBinding> getDeviceBindingsRaw() {
+        return mDeviceBindings;
+    }
+
+    /** Which charge a gas loop takes. See Note [The pump on a gas loop] */
+    int mGasChargeSetting = 0;
+
+    @Override
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {
+        if (CoolantPumpGasLoop.loopGas(this, getReservoirFluid()) != null) {
+            CoolantPumpGasLoop.cycleCharge(this, aPlayer);
+            return;
+        }
+        super.onScrewdriverRightClick(side, aPlayer, aX, aY, aZ, aTool);
     }
 
     public List<DeviceSegmentBinding> getDeviceBindings() {
@@ -778,7 +799,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         double flowRate = mEngine.getVolumetricFlowRate();
         if (flowRate > 1e-6) {
             for (DeviceSegmentBinding b : getDeviceBindings()) {
-                b.device.processThermalExchange(branchFlow(flowRate, b.segment), 0.05, mEngine.getFluid(), b.segment);
+                double q = b.segment != null ? mEngine.getLocalVolumetricFlow(b.segment) : flowRate;
+                b.device.processThermalExchange(q, 0.05, mEngine.getFluid(), b.segment);
             }
         }
     }

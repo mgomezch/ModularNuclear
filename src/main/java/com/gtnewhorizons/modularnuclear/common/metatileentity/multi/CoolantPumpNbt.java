@@ -72,6 +72,7 @@ final class CoolantPumpNbt {
         NBTTagCompound engineTag = new NBTTagCompound();
         LoopStateNbt.write(p.mEngine.exportState(), engineTag);
         aNBT.setTag("mEngine", engineTag);
+        aNBT.setInteger("mGasCharge", p.mGasChargeSetting);
 
         if (p.mLastCrawlResult != null && p.mLastCrawlResult.isSuccess) {
             NBTTagCompound crawlTag = new NBTTagCompound();
@@ -149,8 +150,18 @@ final class CoolantPumpNbt {
         }
 
         if (aNBT.hasKey("mEngine", 10)) {
-            p.mEngine.importState(LoopStateNbt.read(aNBT.getCompoundTag("mEngine")));
+            java.util.Map<String, Object> state = LoopStateNbt.read(aNBT.getCompoundTag("mEngine"));
+            // A gas loop's engine is a GasLoopEngine. See Note [The pump on a gas loop]
+            Object fluidName = state.get("fluid");
+            com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty gas = fluidName != null
+                ? com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty.get(fluidName.toString())
+                : null;
+            if (gas != null) {
+                p.mEngine = new com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasLoopEngine(gas);
+            }
+            p.mEngine.importState(state);
         }
+        p.mGasChargeSetting = aNBT.getInteger("mGasCharge");
         if (aNBT.hasKey("mLoopFormed")) {
             p.mLoopFormed = aNBT.getBoolean("mLoopFormed") && !p.mEngine.getSegments()
                 .isEmpty();
