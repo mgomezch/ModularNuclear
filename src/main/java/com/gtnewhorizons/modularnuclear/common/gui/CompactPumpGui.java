@@ -68,6 +68,11 @@ public class CompactPumpGui extends CompactLoopMachineGui<MTECompactLoopPump> {
     }
 
     @Override
+    protected boolean supportsChargerSlot() {
+        return true;
+    }
+
+    @Override
     protected Widget<?> createErrorIcon(PanelSyncManager syncManager) {
         return errorIcon(syncManager, machine::getGuiProblem);
     }

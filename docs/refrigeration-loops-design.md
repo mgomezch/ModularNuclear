@@ -222,7 +222,10 @@ load.  The bath shows its hot ingots in, the ingots being cooled, the bath arrow
 the cooled ingots out.  The heat exchanger shows its gas tank, the arrow for its next litre and its liquid tank.
 The pump shows the gas in its tanks, the arrow for its loop's charge and the gas in its loop, with its charge
 setting as a mode button.  Pressures, temperatures, flows and power are in the tooltips of the slots and the
-arrow, and on the scanner.
+arrow, and on the scanner.  The machines that take or give EU (compressor, radiator, pump, turbo-expander) have GregTech's power slot
+under the error icon, GregTech's own widget: GregTech's base tile charges and drains its item, with
+`MTEBasicMachine`'s thresholds, so a machine on cables charges a battery and one without runs from a battery or
+from redstone dust.  The turbo-expander only charges.
 
 ## Tests
 

@@ -70,6 +70,9 @@ the bottom corners, where GregTech's machines keep their fluid input and output:
 right.  The pump's charge setting is a button in the bottom left corner, where GregTech's machines keep their
 mode buttons.
 
+Under the error icon is the power slot of a machine that takes or gives EU, GregTech's own widget
+(createChargerSlot, Note [The compact machines' power slot]).
+
 The GUIs use only what GregTech and ModularUI 2 have in both GTNH 2.9.1 and the dailies; the link check covers
 them (Note [Link checks against a pack] in nh-dev's tools/linkcheck/check.py).
 */
@@ -107,12 +110,28 @@ public abstract class CompactLoopMachineGui<T extends MTETieredMachineBlock> ext
                 .crossAxisAlignment(Alignment.CrossAxis.CENTER));
     }
 
-    /** The bottom row: GregTech's corners, and the error icon at its centre. */
+    /**
+     * The bottom row: GregTech's corners, and at its centre the error icon over the power slot, as GregTech's
+     * MTEBasicMachineBaseGui lays them out.
+     */
     @Override
     protected ParentWidget<?> createBottomSection(ModularPanel panel, PanelSyncManager syncManager) {
         ParentWidget<?> section = super.createBottomSection(panel, syncManager);
         Widget<?> error = createErrorIcon(syncManager);
-        return error != null ? section.child(error.horizontalCenter()) : section;
+        if (error == null && !supportsChargerSlot()) return section;
+        return section.child(
+            Flow.column()
+                .coverChildren()
+                .decoration()
+                .bottomRel(0)
+                .horizontalCenter()
+                .childIf(error != null, () -> error)
+                .childIf(supportsChargerSlot(), this::createChargerSlot));
+    }
+
+    /** Whether the machine has a power slot. See Note [The compact machines' power slot] */
+    protected boolean supportsChargerSlot() {
+        return false;
     }
 
     /** The error icon, or null for a machine that has none. */
