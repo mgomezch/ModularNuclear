@@ -19,9 +19,9 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.ICoolantPumpHost;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
@@ -50,6 +50,9 @@ import gregtech.api.metatileentity.implementations.MTEFluidPipe;
  * 6. Maximum volumetric flow rate is capped by the fluid capacity of the pipes connected to the pump.
  */
 public class LoopGraphCrawler {
+
+    /** Share of a coolant bath's fill volume its gas-loop evaporator holds: 50 L of every 1000 L slot. */
+    public static final double BATH_GAS_VOLUME_SHARE = 0.05;
 
     /**
      * Represents the flow configuration of a single pipe block along the crawled loop.
@@ -510,8 +513,7 @@ public class LoopGraphCrawler {
         TileEntity te = world.getTileEntity(px, py, pz);
         if (te instanceof IGregTechTileEntity) {
             IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
-            if (mte instanceof MTECoolantPump) {
-                MTECoolantPump pump = (MTECoolantPump) mte;
+            if (mte instanceof ICoolantPumpHost pump) {
                 return pump.isLoopFormed() && !te.isInvalid() && pump.getBaseMetaTileEntity() != null;
             }
         }
@@ -841,6 +843,17 @@ public class LoopGraphCrawler {
 
                 // Check if we arrived at the pump suction port
                 if (step.x == targetX && step.y == targetY && step.z == targetZ) {
+                    // A one-block pump is both ends of its loop, which must come back through its suction side
+                    if (startX == targetX && startY == targetY
+                        && startZ == targetZ
+                        && step.entrySide != targetSuctionSide) {
+                        finishWithFailure(
+                            "modularnuclear.coolant_loop.crawler.pump_wrong_side",
+                            step.x,
+                            step.y,
+                            step.z);
+                        return true;
+                    }
                     // The pump is a loop device too: its suction pipe is the size of its discharge pipe
                     if (step.segmentThickness != null && dischargeThickness != null
                         && (Math.abs(step.segmentThickness - dischargeThickness) > 1e-4
@@ -882,6 +895,13 @@ public class LoopGraphCrawler {
                     default:
                 }
                 switch (visitMachineHatch(step, te)) {
+                    case STOP:
+                        return true;
+                    case NEXT:
+                        continue;
+                    default:
+                }
+                switch (visitCompactDevice(step, te)) {
                     case STOP:
                         return true;
                     case NEXT:
@@ -1436,6 +1456,8 @@ public class LoopGraphCrawler {
                         return visitDegasserHatch(step, hatch, degasser);
                     } else if (owner instanceof MTECoolantBath bath) {
                         return visitBathHatch(step, hatch, bath);
+                    } else if (owner instanceof IInlineLoopDevice inline) {
+                        return visitInlineLoopDevice(step, hatch, inline);
                     } else if (hatch.getOppositeHatchTile() != null || !hatch.isPassageInlet()) {
                         return visitPassageHatchPair(step, hatch);
                     }
@@ -1536,6 +1558,129 @@ public class LoopGraphCrawler {
                 }
             }
             return CoolantPipingRegistry.getProperties(lastPipe);
+        }
+
+        /** A loop hatch of a generic in-line device: the loop runs through it as a run of its feeding pipe. */
+        private Visit visitInlineLoopDevice(FrontierStep step, MTEHatchPressurizedFluid hatch, IInlineLoopDevice dev) {
+            if (!dev.isLoopReady()) {
+                finishWithFailure("modularnuclear.coolant_loop.crawler.device_unformed", step.x, step.y, step.z);
+                return Visit.STOP;
+            }
+            MTEHatchPressurizedFluid outlet = dev.getLoopOutlet();
+            if (outlet == hatch || !hatch.isInput() || outlet == null) {
+                finishWithFailure("modularnuclear.coolant_loop.crawler.device_output", step.x, step.y, step.z);
+                return Visit.STOP;
+            }
+            if (pump != null) dev.setLoopPump(pump);
+            if (!devices.contains(dev)) devices.add(dev);
+            CoolantPipingRegistry.PipeProperties pipeProps = attachedPipe(step);
+            double maxTemp = Double.isNaN(dev.getLoopMaxTemperatureCelsius()) ? pipeProps.maxTemperatureCelsius
+                : Math.min(pipeProps.maxTemperatureCelsius, dev.getLoopMaxTemperatureCelsius());
+            LoopSegment devSeg = new LoopSegment(
+                dev.getDeviceId(),
+                step.x,
+                step.y,
+                step.z,
+                Math.max(1.0, dev.getLoopLengthMeters()),
+                pipeProps.diameter,
+                pipeProps.roughness,
+                dev.getMinorLossK(),
+                pipeProps.maxPressureBar,
+                maxTemp,
+                dev.getDeviceTemperatureCelsius());
+            devSeg.setCustomVolumeM3(Math.max(1e-4, dev.getLoopVolumeM3()));
+            devSeg.setCapacityLiters(dev.getFillVolumeLiters());
+            devSeg.setFrictionMultiplier(pipeProps.frictionMultiplier);
+            segments.add(devSeg);
+
+            IGregTechTileEntity outTE = outlet.getBaseMetaTileEntity();
+            visitedPipeAndDevicePositions
+                .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
+            ForgeDirection outFacing = outTE.getFrontFacing();
+            LoopId id = LoopId.of(dev.getDeviceId());
+            // Recorded as its inlet hatch, which a load finds the device by (LoopDevices.at and
+            // ILoopHatchOwner.deviceOf)
+            addGraphNode(graphNodes, id, NodeType.DEVICE, dev.getLoopInlet() != null ? dev.getLoopInlet() : dev);
+            addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, id);
+            frontier.add(
+                new FrontierStep(
+                    id,
+                    outTE.getXCoord() + outFacing.offsetX,
+                    outTE.getYCoord() + outFacing.offsetY,
+                    outTE.getZCoord() + outFacing.offsetZ,
+                    outFacing.getOpposite(),
+                    step.segmentThickness,
+                    step.segmentPipeAmount,
+                    id));
+            return Visit.NEXT;
+        }
+
+        /** A one-block loop device: the loop runs through it from its inlet side to the opposite side. */
+        private Visit visitCompactDevice(FrontierStep step, TileEntity te) {
+            if (!(te instanceof IGregTechTileEntity gte
+                && gte.getMetaTileEntity() instanceof ICompactLoopDevice block)) {
+                return Visit.FALL_THROUGH;
+            }
+            // The pass the loop is entering: the block's own, or its second
+            ICompactLoopDevice second = block.getSecondPass();
+            boolean secondPass = second != null && step.entrySide != block.getLoopInletSide()
+                && step.entrySide == second.getLoopInletSide();
+            ICompactLoopDevice dev = secondPass ? second : block;
+            if (!dev.isLoopReady()) {
+                finishWithFailure("modularnuclear.coolant_loop.crawler.device_unformed", step.x, step.y, step.z);
+                return Visit.STOP;
+            }
+            if (step.entrySide != dev.getLoopInletSide()) {
+                finishWithFailure("modularnuclear.coolant_loop.crawler.device_output", step.x, step.y, step.z);
+                return Visit.STOP;
+            }
+            // A block is visited once for each of its passes
+            boolean seen = devices.contains(dev);
+            if (!secondPass) seen |= !visitedPipeAndDevicePositions.add(new BlockPosCoord(step.x, step.y, step.z));
+            if (seen) {
+                finishWithFailure(
+                    "modularnuclear.coolant_loop.crawler.device_merge_needs_manifold",
+                    step.x,
+                    step.y,
+                    step.z);
+                return Visit.STOP;
+            }
+            if (pump != null) dev.setLoopPump(pump);
+            if (!devices.contains(dev)) devices.add(dev);
+            CoolantPipingRegistry.PipeProperties pipeProps = attachedPipe(step);
+            double maxTemp = Double.isNaN(dev.getLoopMaxTemperatureCelsius()) ? pipeProps.maxTemperatureCelsius
+                : Math.min(pipeProps.maxTemperatureCelsius, dev.getLoopMaxTemperatureCelsius());
+            LoopSegment devSeg = new LoopSegment(
+                dev.getDeviceId(),
+                step.x,
+                step.y,
+                step.z,
+                Math.max(1.0, dev.getLoopLengthMeters()),
+                pipeProps.diameter,
+                pipeProps.roughness,
+                dev.getMinorLossK(),
+                Math.min(pipeProps.maxPressureBar, dev.getLoopMaxPressureBar()),
+                maxTemp,
+                dev.getDeviceTemperatureCelsius());
+            devSeg.setCustomVolumeM3(Math.max(1e-4, dev.getLoopVolumeM3()));
+            devSeg.setCapacityLiters(dev.getFillVolumeLiters());
+            devSeg.setFrictionMultiplier(pipeProps.frictionMultiplier);
+            segments.add(devSeg);
+            LoopId id = LoopId.of(dev.getDeviceId());
+            addGraphNode(graphNodes, id, NodeType.DEVICE, dev);
+            addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, id);
+            ForgeDirection out = dev.getLoopOutletSide();
+            frontier.add(
+                new FrontierStep(
+                    id,
+                    step.x + out.offsetX,
+                    step.y + out.offsetY,
+                    step.z + out.offsetZ,
+                    out.getOpposite(),
+                    step.segmentThickness,
+                    step.segmentPipeAmount,
+                    id));
+            return Visit.NEXT;
         }
 
         /** A pressurized hatch of a heat exchanger. */
@@ -1666,6 +1811,9 @@ public class LoopGraphCrawler {
                 bath.getDeviceTemperatureCelsius());
             devSeg.setCapacityLiters(bath.getFillVolumeLiters());
             devSeg.setCustomVolumeM3(bath.getFillVolumeLiters() / 1000.0);
+            // On a gas loop the bath is an evaporator, a coil around each slot, not a pool. See Note [Gas loop pressure
+            // zones]
+            devSeg.setGasVolumeM3(bath.getFillVolumeLiters() / 1000.0 * BATH_GAS_VOLUME_SHARE);
             segments.add(devSeg);
 
             MTEHatchPressurizedFluid outlet = bath.getPrimaryOutlet();
@@ -2220,10 +2368,23 @@ public class LoopGraphCrawler {
             int ny = y + side.offsetY;
             int nz = z + side.offsetZ;
             if (nx == targetX && ny == targetY && nz == targetZ) {
-                return true;
+                return takesPipeOn(world, nx, ny, nz, side.getOpposite());
             }
         }
         return false;
+    }
+
+    /**
+     * Whether the loop block at a position takes a pipe on this face of it. A hatch's block takes one wherever a
+     * pipe reaches it; a one-block machine only on the sides its loop runs through, so a pipe passing its front or
+     * its top is not joined to it.
+     */
+    private static boolean takesPipeOn(World world, int x, int y, int z, ForgeDirection face) {
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof ILoopPortSides ports) {
+            return ports.isLoopPortSide(face);
+        }
+        return true;
     }
 
     public static ForgeDirection findNextPipeDirection(World world, BaseMetaPipeEntity bmpe, MTEFluidPipe pipe,

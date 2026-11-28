@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.CoolantPumpCore;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 
@@ -126,18 +127,12 @@ public class CoolantLoopFlowStopTest {
         pump.setFillRateLitersPerTick(1000L);
         pump.setSimulatedCoolantLiters(50000L);
         pump.setSimulatedTankCapacityLiters(100000L);
-        pump.setLoopState(MTECoolantPump.LoopState.CIRCULATING);
+        pump.setLoopState(CoolantPumpCore.LoopState.CIRCULATING);
         setLoopFormed(pump, true);
     }
 
     private void setLoopFormed(MTECoolantPump pump, boolean formed) {
-        try {
-            java.lang.reflect.Field f = MTECoolantPump.class.getDeclaredField("mLoopFormed");
-            f.setAccessible(true);
-            f.set(pump, formed);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        pump.setLoopFormed(formed);
     }
 
     @Test
@@ -195,7 +190,7 @@ public class CoolantLoopFlowStopTest {
 
         // Step 1: Pump enters DECELERATING state and applies active motor braking
         pump.stepCoolantLoop();
-        assertEquals(MTECoolantPump.LoopState.DECELERATING, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.DECELERATING, pump.getLoopState());
         assertTrue(
             pump.getLoopStatus()
                 .contains("Actively decelerating flow"));
@@ -231,7 +226,7 @@ public class CoolantLoopFlowStopTest {
 
         // Step 1: Transitions to DRAINING and returns fillRate (1000 L) to reservoir
         pump.stepCoolantLoop();
-        assertEquals(MTECoolantPump.LoopState.DRAINING, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.DRAINING, pump.getLoopState());
         assertEquals(4000L, pump.getCurrentFillLiters());
         assertEquals(51000L, pump.getSimulatedCoolantLiters());
 
@@ -242,7 +237,7 @@ public class CoolantLoopFlowStopTest {
 
         // Loop is now completely empty, all 5000 L returned to reservoir
         assertEquals(0L, pump.getCurrentFillLiters());
-        assertEquals(MTECoolantPump.LoopState.EMPTY, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.EMPTY, pump.getLoopState());
         assertEquals(55000L, pump.getSimulatedCoolantLiters());
         assertTrue(
             pump.getLoopStatus()
@@ -261,7 +256,7 @@ public class CoolantLoopFlowStopTest {
 
         // Tick 1: Drains 1000 L -> Reservoir: 51,000 L, Loop: 4000 L
         pump.stepCoolantLoop();
-        assertEquals(MTECoolantPump.LoopState.DRAINING, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.DRAINING, pump.getLoopState());
         assertEquals(4000L, pump.getCurrentFillLiters());
         assertEquals(51000L, pump.getSimulatedCoolantLiters());
 
@@ -273,7 +268,7 @@ public class CoolantLoopFlowStopTest {
 
         // Tick 3: Reservoir is full; draining pauses in STOPPED state without fluid loss
         pump.stepCoolantLoop();
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.STOPPED, pump.getLoopState());
         assertEquals(3000L, pump.getCurrentFillLiters());
         assertEquals(52000L, pump.getSimulatedCoolantLiters());
         assertTrue(
@@ -317,7 +312,7 @@ public class CoolantLoopFlowStopTest {
         pump.getEngine()
             .setVolumetricFlowRate(0.0);
         pump.setCurrentFillLiters(0L);
-        pump.setLoopState(MTECoolantPump.LoopState.EMPTY);
+        pump.setLoopState(CoolantPumpCore.LoopState.EMPTY);
         pump.setSimulatedCoolantLiters(55000L);
         dischargeAllowedToWork = false;
 
@@ -327,7 +322,7 @@ public class CoolantLoopFlowStopTest {
 
         // Tick 1: Transitions to FILLING and draws 1000 L from reservoir
         pump.stepCoolantLoop();
-        assertEquals(MTECoolantPump.LoopState.FILLING, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.FILLING, pump.getLoopState());
         assertEquals(1000L, pump.getCurrentFillLiters());
         assertEquals(54000L, pump.getSimulatedCoolantLiters());
 
@@ -338,7 +333,7 @@ public class CoolantLoopFlowStopTest {
 
         // Loop filled, transitions to CIRCULATING and begins active flow
         assertEquals(5000L, pump.getCurrentFillLiters());
-        assertEquals(MTECoolantPump.LoopState.CIRCULATING, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.CIRCULATING, pump.getLoopState());
         assertEquals(50000L, pump.getSimulatedCoolantLiters());
         assertTrue(
             pump.getLoopStatus()
@@ -373,7 +368,7 @@ public class CoolantLoopFlowStopTest {
                 .getVolumetricFlowRate(),
             1e-6,
             "Flow rate must remain 0 when pump is unpowered");
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.STOPPED, pump.getLoopState());
         assertEquals(
             gregtech.api.util.shutdown.ShutDownReasonRegistry.POWER_LOSS.getDisplayString(),
             pump.getLoopStatus(),

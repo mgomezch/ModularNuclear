@@ -19,10 +19,12 @@ import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ConvectiveHeatTransferModel;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ILoopHatchOwner;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheExchange;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantLoopMachineGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
@@ -66,7 +68,7 @@ import gregtech.common.tileentities.machines.MTEHatchInputME;
  * (e.g. Distilled Water -> Steam at standard 1:160 expansion ratio).
  */
 public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPressurizedHeatExchanger>
-    implements ILoopHatchOwner, ISurvivalConstructable {
+    implements ILoopHatchOwner, ISurvivalConstructable, com.gtnewhorizons.modularnuclear.common.gui.IReadoutLines {
 
     public static final int CASING_INDEX_HEAT_PROOF = 11;
 
@@ -94,6 +96,40 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     /** World tick of the pump's last report of the loop's flow; once it stops reporting, the coolant is still. */
     protected long mLastFlowReportTick = -1;
     protected final PheExchange.Batch mBatch = new PheExchange.Batch();
+
+    // See Note [PHE gas modes]
+    /** The second loop's hatches, in dual-loop mode (in place of the secondary GregTech hatches). */
+    protected MTEHatchPressurizedFluid mSecondaryInlet = null;
+    protected MTEHatchPressurizedFluid mSecondaryOutlet = null;
+    final PheSecondSide mSideB = new PheSecondSide(this);
+    final PheGasModes.CondenseBatch mCondenseBatch = new PheGasModes.CondenseBatch();
+    /** Litres liquefied since the PHE last loaded, for its readout. */
+    long mCondensedLiters = 0;
+    private String mGasMode = "";
+
+    /** Whether the PHE joins two loops (or two passes of one). See Note [PHE gas modes] */
+    public boolean isDualLoop() {
+        return mSecondaryInlet != null && mSecondaryOutlet != null;
+    }
+
+    public PheSecondSide getSecondSide() {
+        return mSideB;
+    }
+
+    java.util.List<MTEHatchInput> inputHatches() {
+        return mInputHatches;
+    }
+
+    @Override
+    public boolean ownsHatch(MTEHatchPressurizedFluid hatch) {
+        return ILoopHatchOwner.super.ownsHatch(hatch)
+            || hatch != null && (hatch == mSecondaryInlet || hatch == mSecondaryOutlet);
+    }
+
+    @Override
+    public ICoolantLoopDevice deviceOf(MTEHatchPressurizedFluid hatch) {
+        return hatch != null && (hatch == mSecondaryInlet || hatch == mSecondaryOutlet) ? mSideB : this;
+    }
 
     public MTEPressurizedHeatExchanger(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -216,6 +252,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     private void resetMatchedParts() {
         mPrimaryInlet = null;
         mPrimaryOutlet = null;
+        mSecondaryInlet = null;
+        mSecondaryOutlet = null;
         mInputHatches.clear();
         mOutputHatches.clear();
         mMaintenanceHatches.clear();
@@ -305,8 +343,21 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
                 break;
             }
         }
-        checkOneInputHatch(aErrors);
-        checkOneOutputHatch(aErrors);
+        if (mSecondaryInlet != null || mSecondaryOutlet != null) {
+            // Dual-loop mode: a second pair of high-pressure hatches and no secondary GregTech hatches
+            if (mSecondaryInlet == null) {
+                aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_primary_inlet"));
+            }
+            if (mSecondaryOutlet == null) {
+                aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_primary_outlet"));
+            }
+            if (!mInputHatches.isEmpty() || !mOutputHatches.isEmpty()) {
+                aErrors.add(StructureErrors.of("modularnuclear.gas_loop.structure.error.phe_mixed_secondary"));
+            }
+        } else {
+            checkOneInputHatch(aErrors);
+            checkOneOutputHatch(aErrors);
+        }
 
         if (mPrimaryInlet == null) {
             aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_primary_inlet"));
@@ -326,6 +377,14 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         if (mPrimaryOutlet != null) {
             mPrimaryOutlet.updateTexture(CASING_INDEX_HEAT_PROOF);
             mPrimaryOutlet.setMode(MTEHatchPressurizedFluid.HatchMode.DISCHARGE);
+        }
+        if (mSecondaryInlet != null) {
+            mSecondaryInlet.updateTexture(CASING_INDEX_HEAT_PROOF);
+            mSecondaryInlet.setMode(MTEHatchPressurizedFluid.HatchMode.SUCTION);
+        }
+        if (mSecondaryOutlet != null) {
+            mSecondaryOutlet.updateTexture(CASING_INDEX_HEAT_PROOF);
+            mSecondaryOutlet.setMode(MTEHatchPressurizedFluid.HatchMode.DISCHARGE);
         }
         for (MTEHatchInput ih : mInputHatches) {
             ih.updateTexture(CASING_INDEX_HEAT_PROOF);
@@ -366,6 +425,9 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             // A pump that stopped (or a loop that broke) no longer reports its flow: the coolant here is still
             if (aBaseMetaTileEntity.getTimer() - mLastFlowReportTick > 2) {
                 mLastCoolantFlowRateM3s = 0.0;
+            }
+            if (aBaseMetaTileEntity.getTimer() - mSideB.lastFlowReportTick > 2) {
+                mSideB.flowM3s = 0.0;
             }
             stepHeatExchange();
         }
@@ -568,7 +630,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
 
     private static final CoolantDeviceData.PHEData DEFAULT_PHE_CONFIG = new CoolantDeviceData.PHEData();
 
-    private static CoolantDeviceData.PHEData pheConfig() {
+    static CoolantDeviceData.PHEData pheConfig() {
         CoolantDeviceData data = CoolantLoopDataRegistry.getDeviceData();
         return data != null ? data.getPhe() : DEFAULT_PHE_CONFIG;
     }
@@ -582,8 +644,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
      * The secondary coolant a fluid boils as, or null. An exchanger is fed one coolant, so the last answer is kept and
      * the name lookup runs only when the fluid (or the config) changes.
      */
-    private CoolantDeviceData.PHEData.SecondaryCoolantEntry secondaryCoolantFor(CoolantDeviceData.PHEData cfg,
-        Fluid fluid) {
+    CoolantDeviceData.PHEData.SecondaryCoolantEntry secondaryCoolantFor(CoolantDeviceData.PHEData cfg, Fluid fluid) {
         if (fluid == null) return null;
         if (fluid != mMatchedFluid || cfg != mMatchedConfig) {
             mMatchedCoolant = cfg.findSecondaryCoolant(fluid.getName());
@@ -726,11 +787,70 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         }
 
         CoolantDeviceData.PHEData pheConfig = pheConfig();
+        double dt = 0.05; // 1 tick = 0.05 seconds
+        double effectiveArea = mExchangeArea * mHeatTransferMultiplier * pheConfig.heatTransferMultiplier;
+
+        // See Note [PHE gas modes]
+        if (isDualLoop()) {
+            double q = PheGasModes.stepDual(
+                this,
+                effectiveArea * effFactor,
+                getMaxHeatExchangePerBatchJoules() / Math.max(1, getBatchTicks()),
+                dt);
+            mLastHeatTransferredWatts = Math.abs(q) / dt;
+            mGasMode = String.format(
+                "Dual loop: %sW %s",
+                siWatts(Math.abs(q) / dt),
+                q >= 0 ? "to the second loop" : "to the first loop");
+            return true;
+        }
+        GasProperty loopGas = PheGasModes.gasOf(mBoundSegment, mLoopFluid);
+        if (loopGas != null) {
+            Object[] condensable = PheGasModes.findCondensable(this, pheConfig);
+            if (condensable != null) {
+                CoolantDeviceData.PHEData.SecondaryCoolantEntry c = (CoolantDeviceData.PHEData.SecondaryCoolantEntry) condensable[0];
+                if (mBoundSegment.getCurrentTemperatureCelsius()
+                    < c.boilingPointCelsius - pheConfig.approachMinDeltaT) {
+                    double q = PheGasModes.stepCondense(
+                        this,
+                        loopGas,
+                        pheConfig,
+                        c,
+                        (Integer) condensable[1],
+                        (Fluid) condensable[2],
+                        effectiveArea * effFactor,
+                        getMaxHeatExchangePerBatchJoules(),
+                        dt);
+                    mLastHeatTransferredWatts = q / dt;
+                    mGasMode = String.format(
+                        "Liquefying %s: %sW, %,d L made, %.0f%% of the next",
+                        c.outputGasName,
+                        siWatts(q / dt),
+                        mCondensedLiters,
+                        100.0 * mCondenseBatch.heatJoules / Math.max(1.0, c.latentHeat()));
+                    return true;
+                }
+            }
+            scanSecondaryInput(pheConfig);
+            double q = PheGasModes.stepBoilGas(
+                this,
+                loopGas,
+                pheConfig,
+                mScanCoolant,
+                mScanAmount,
+                effectiveArea * effFactor,
+                getMaxHeatExchangePerBatchJoules(),
+                dt);
+            mLastHeatTransferredWatts = q / dt;
+            mGasMode = mScanCoolant != null ? String.format("Boiling with gas loop heat: %sW", siWatts(q / dt))
+                : "Gas loop: no secondary fluid";
+            if (mBatch.timer >= getBatchTicks()) completeBatch();
+            return true;
+        }
+
         scanSecondaryInput(pheConfig);
         CoolantDeviceData.PHEData.SecondaryCoolantEntry matchedCoolant = mScanCoolant;
 
-        double dt = 0.05; // 1 tick = 0.05 seconds
-        double effectiveArea = mExchangeArea * mHeatTransferMultiplier * pheConfig.heatTransferMultiplier;
         mCurrentCoolantTemp = PheExchange.tick(
             mBatch,
             pheConfig,
@@ -1028,6 +1148,19 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity == null) return false;
+        // A second loop's hatches. See Note [PHE gas modes]
+        if (aMetaTileEntity instanceof MTEHatchPressurizedFluid ph) {
+            ph.updateTexture(aBaseCasingIndex);
+            if (ph.isInput() && mSecondaryInlet == null) {
+                mSecondaryInlet = ph;
+            } else if (ph.isOutput() && mSecondaryOutlet == null) {
+                mSecondaryOutlet = ph;
+            } else {
+                return false;
+            }
+            ph.setLoopOwner(this);
+            return true;
+        }
         if (aMetaTileEntity instanceof MTEHatchInput) {
             MTEHatchInput ih = (MTEHatchInput) aMetaTileEntity;
             ih.updateTexture(aBaseCasingIndex);
@@ -1140,6 +1273,38 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     @Override
     public MTEHatchPressurizedFluid getLoopOutlet() {
         return getPrimaryOutlet();
+    }
+
+    private static String siWatts(double w) {
+        double a = Math.abs(w);
+        if (a >= 1e9) return String.format("%.2fG", w / 1e9);
+        if (a >= 1e6) return String.format("%.2fM", w / 1e6);
+        if (a >= 1e3) return String.format("%.1fk", w / 1e3);
+        return String.format("%.0f", w);
+    }
+
+    @Override
+    public java.util.List<String> getReadoutLines() {
+        java.util.List<String> l = new ArrayList<>();
+        if (!mGasMode.isEmpty() && (isDualLoop() || PheGasModes.gasOf(mBoundSegment, mLoopFluid) != null)) {
+            l.add(mGasMode);
+        }
+        if (isDualLoop() && mSideB.segment != null) {
+            l.add(
+                String.format(
+                    "Second loop: %.1f °C in, %.1f °C out",
+                    mSideB.segment.getIncomingTemperatureCelsius(),
+                    mSideB.segment.getCurrentTemperatureCelsius()));
+        }
+        return l;
+    }
+
+    /** The scanner's lines: GregTech's, then the gas modes'. */
+    @Override
+    public String[] getInfoData() {
+        java.util.List<String> lines = new ArrayList<>(java.util.Arrays.asList(super.getInfoData()));
+        lines.addAll(getReadoutLines());
+        return lines.toArray(new String[0]);
     }
 
     /** Our GUIs show no GregTech logo. */

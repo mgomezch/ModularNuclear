@@ -326,9 +326,35 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
                 ColorUtils.loopHeatTransfer,
                 showPheStats);
         }
+        if (multiblock instanceof IReadoutLines readout) {
+            StringSyncValue linesSyncer = new StringSyncValue(() -> String.join("\n", readout.getReadoutLines()));
+            syncManager.syncValue("readoutLines", linesSyncer);
+            IntSyncValue errorIDSyncer = syncManager.findSyncHandler("errorID", IntSyncValue.class);
+            Supplier<Boolean> formed = () -> (errorIDSyncer == null) || ((errorIDSyncer.getValue() & 64) == 0);
+            for (int i = 0; i < READOUT_LINES; i++) {
+                final int line = i;
+                Supplier<String> text = () -> {
+                    String all = linesSyncer.getValue();
+                    if (all == null || all.isEmpty()) return "";
+                    String[] parts = all.split("\n", -1);
+                    return line < parts.length ? parts[line] : "";
+                };
+                list.child(
+                    IKey.dynamic(text)
+                        .color(ColorUtils.loopFlow::getColor)
+                        .asWidget()
+                        .textAlign(Alignment.CenterLeft)
+                        .setEnabledIf(
+                            w -> formed.get() && !text.get()
+                                .isEmpty()));
+            }
+        }
 
         return list;
     }
+
+    /** Most readout lines a machine shows (IReadoutLines). */
+    private static final int READOUT_LINES = 10;
 
     private static void statLine(ListWidget<IWidget, ?> list, Supplier<String> text, ColorResource color,
         Supplier<Boolean> enabled) {

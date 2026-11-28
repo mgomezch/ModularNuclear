@@ -187,9 +187,14 @@ public class ManifoldAndPipeFlowDirectionTest {
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(mockWorld, 100);
         CrawlResult result = crawler
-            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 10, ForgeDirection.NORTH, "test_pump", null, null);
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 10, ForgeDirection.SOUTH, "test_pump", null, null);
 
         assertTrue(result.isSuccess, "Crawl should succeed for closed pipe loop");
+
+        // One block is both ends of this loop, as a compact pump is: the loop must come back through its suction side
+        CrawlResult wrongSide = new LoopGraphCrawler(mockWorld, 100)
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 10, ForgeDirection.NORTH, "test_pump", null, null);
+        assertFalse(wrongSide.isSuccess, "A loop returning through another side is not closed");
         assertEquals(3, result.pipeConfigs.size());
 
         // Verify Pipe 0 (flowing out to SOUTH):

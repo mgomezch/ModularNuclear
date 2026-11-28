@@ -1,4 +1,4 @@
-package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
+package com.gtnewhorizons.modularnuclear.common.coolantloop.pump;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -24,8 +24,8 @@ class CoolantPumpReservoirFluidTest {
     void aTankThatDoesNotReportItsFluidKeepsThePumpStopped() {
         // The in-memory tank holds 100000 L, and the tank reports no fluid
         TestCoolantPump pump = new TestCoolantPump("unknown_fluid_pump");
-        assertEquals(MTECoolantPump.Step.DONE, CoolantPumpFluidSafety.refuseUnsuitableFluid(pump, null));
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.mLoopState);
+        assertEquals(CoolantPumpCore.Step.DONE, CoolantPumpFluidSafety.refuseUnsuitableFluid(pump.getPumpCore(), null));
+        assertEquals(CoolantPumpCore.LoopState.STOPPED, pump.getPumpCore().mLoopState);
         assertEquals(
             "modularnuclear.coolant_loop.pump.status.reservoir_unknown_fluid",
             pump.getLoopStatusMessage().key);
@@ -40,9 +40,9 @@ class CoolantPumpReservoirFluidTest {
         }
         TestCoolantPump pump = new TestCoolantPump("not_a_coolant_pump");
         assertEquals(
-            MTECoolantPump.Step.DONE,
-            CoolantPumpFluidSafety.refuseUnsuitableFluid(pump, new FluidStack(notACoolant, 1000)));
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.mLoopState);
+            CoolantPumpCore.Step.DONE,
+            CoolantPumpFluidSafety.refuseUnsuitableFluid(pump.getPumpCore(), new FluidStack(notACoolant, 1000)));
+        assertEquals(CoolantPumpCore.LoopState.STOPPED, pump.getPumpCore().mLoopState);
         assertEquals("modularnuclear.coolant_loop.pump.status.refuse_unknown_coolant", pump.getLoopStatusMessage().key);
     }
 }

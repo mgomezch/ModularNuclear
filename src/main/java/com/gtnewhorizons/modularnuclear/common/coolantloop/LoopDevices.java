@@ -11,6 +11,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBa
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.gas.MTEInlineLoopMachine;
 
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -37,6 +38,8 @@ public final class LoopDevices {
         register(MTEPressurizedHeatExchanger.class, 11, 8, 11);
         register(MTEPressurizedDegasser.class, 2, 0, 2);
         register(MTECoolantBath.class, 5, 2, 12);
+        // The gas loop machines: 3x3, up to 9 long (Note [Gas loop machines])
+        register(MTEInlineLoopMachine.class, 9, 2, 9);
     }
 
     private LoopDevices() {}
@@ -58,7 +61,9 @@ public final class LoopDevices {
                 owner = searchOwner(world, x, y, z, hatch);
                 hatch.setLoopOwner(owner);
             }
-            return owner != null ? owner : hatch;
+            if (owner == null) return hatch;
+            ICoolantLoopDevice side = owner.deviceOf(hatch);
+            return side != null ? side : owner;
         }
         return mte instanceof ICoolantLoopDevice device ? device : null;
     }

@@ -26,6 +26,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipingRegistry;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ILoopPortSides;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
@@ -120,6 +121,8 @@ public class MTECoolantPipe extends MTEFluidPipe {
         }
         if (tileEntity instanceof IGregTechTileEntity gte) {
             IMetaTileEntity mte = gte.getMetaTileEntity();
+            // A one-block loop machine takes pipes only on the sides its loop runs through
+            if (mte instanceof ILoopPortSides ports) return ports.isLoopPortSide(side.getOpposite());
             if (mte instanceof MTEHatchPressurizedFluid || mte instanceof ICoolantLoopDevice) {
                 return true;
             }

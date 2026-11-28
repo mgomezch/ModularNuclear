@@ -34,7 +34,8 @@ final class CoolantPumpImpeller {
         boolean shouldTick = (pump.getBaseMetaTileEntity() == null) || TickPhase.due(
             pump.getBaseMetaTileEntity()
                 .getTimer(),
-            pump.schedulePhase(),
+            pump.getPumpCore()
+                .schedulePhase(),
             100);
         if (shouldTick) {
             double gasFrac = pump.getDissolvedGasFraction();

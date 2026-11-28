@@ -6,8 +6,10 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.CoolantPumpCore;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.CoolantPumpReservoir;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantPumpReservoir;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.RailcraftPumpReservoir;
 
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 
@@ -27,13 +29,32 @@ public class TestCoolantPump extends MTECoolantPump {
     }
 
     @Override
-    protected CoolantPumpReservoir createReservoir() {
+    public CoolantPumpReservoir createReservoir() {
         return new FakeReservoir(this);
+    }
+
+    /** The core, crawling what the test set and seeing the fluid temperature it set. */
+    @Override
+    protected CoolantPumpCore createPumpCore() {
+        return new CoolantPumpCore(this) {
+
+            @Override
+            public boolean crawlLoopGraph() {
+                if (inWorld() || nextCrawlResult == null) return super.crawlLoopGraph();
+                return applyCrawlResult(nextCrawlResult);
+            }
+
+            @Override
+            public double getPumpFluidTemperatureCelsius() {
+                return fluidTemperatureCelsius != null ? fluidTemperatureCelsius
+                    : super.getPumpFluidTemperatureCelsius();
+            }
+        };
     }
 
     @Override
     public FakeReservoir getReservoir() {
-        return (FakeReservoir) super.getReservoir();
+        return (FakeReservoir) getPumpCore().getReservoir();
     }
 
     /** The pump needs no energy hatches and never runs out of power. */
@@ -49,12 +70,6 @@ public class TestCoolantPump extends MTECoolantPump {
     /** Without a world there is nothing to crawl: this is what the next crawl finds. */
     public void setNextCrawlResult(LoopGraphCrawler.CrawlResult result) {
         nextCrawlResult = result;
-    }
-
-    @Override
-    public boolean crawlLoopGraph() {
-        if (inWorld() || nextCrawlResult == null) return super.crawlLoopGraph();
-        return applyCrawlResult(nextCrawlResult);
     }
 
     public long getSimulatedCoolantLiters() {
@@ -79,11 +94,6 @@ public class TestCoolantPump extends MTECoolantPump {
     }
 
     @Override
-    public double getPumpFluidTemperatureCelsius() {
-        return fluidTemperatureCelsius != null ? fluidTemperatureCelsius : super.getPumpFluidTemperatureCelsius();
-    }
-
-    @Override
     public double getBiomeTemperatureCelsius() {
         return inWorld() ? super.getBiomeTemperatureCelsius() : biomeTemperatureCelsius;
     }
@@ -94,7 +104,7 @@ public class TestCoolantPump extends MTECoolantPump {
     }
 
     /** The reservoir's in-memory tank, used while the pump has no world. */
-    public static class FakeReservoir extends CoolantPumpReservoir {
+    public static class FakeReservoir extends RailcraftPumpReservoir {
 
         private final TestCoolantPump pump;
         long coolantLiters = 100000L;

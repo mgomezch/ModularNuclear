@@ -27,6 +27,10 @@ public final class ModWerkstoffs implements Runnable {
     public static final int SUPERHEATED_HEAVY_WATER_STEAM_ID = 12_502;
     public static final int SUPERCRITICAL_HEAVY_WATER_STEAM_ID = 12_503;
     public static final int CORIUM_ID = 12_504;
+    /** The refrigerant and its precursors. See Note [R-134a chemistry] in RefrigerantRecipes */
+    public static final int R134A_ID = 12_505;
+    public static final int TRICHLOROETHYLENE_ID = 12_506;
+    public static final int CHLOROTRIFLUOROETHANE_ID = 12_507;
 
     public static Werkstoff heavyWater;
     public static Werkstoff heavyWaterSteam;
@@ -34,6 +38,9 @@ public final class ModWerkstoffs implements Runnable {
     public static Werkstoff supercriticalHeavyWaterSteam;
     /** Solidified corium as a material: its dust and rod (the molten corium of a meltdown is a fluid of its own). */
     public static Werkstoff corium;
+    public static Werkstoff r134a;
+    public static Werkstoff trichloroethylene;
+    public static Werkstoff chlorotrifluoroethane;
 
     private ModWerkstoffs() {}
 
@@ -45,6 +52,20 @@ public final class ModWerkstoffs implements Runnable {
     @Override
     public void run() {
         heavyWater = cellsOnly(HEAVY_WATER_ID, "HeavyWater", new short[] { 45, 94, 130 }, false);
+        // The fluid ids are the names lowercased: "r134a" is the gas GasProperty.R134A knows
+        r134a = cellsOnly(R134A_ID, "R134a", "CF₃CH₂F", new short[] { 170, 225, 240 }, true);
+        trichloroethylene = cellsOnly(
+            TRICHLOROETHYLENE_ID,
+            "Trichloroethylene",
+            "C₂HCl₃",
+            new short[] { 200, 230, 180 },
+            false);
+        chlorotrifluoroethane = cellsOnly(
+            CHLOROTRIFLUOROETHANE_ID,
+            "Chlorotrifluoroethane",
+            "CF₃CH₂Cl",
+            new short[] { 190, 240, 200 },
+            true);
         heavyWaterSteam = cellsOnly(HEAVY_WATER_STEAM_ID, "HeavyWaterSteam", new short[] { 200, 210, 225 }, true);
         superheatedHeavyWaterSteam = cellsOnly(
             SUPERHEATED_HEAVY_WATER_STEAM_ID,
@@ -84,11 +105,15 @@ public final class ModWerkstoffs implements Runnable {
     }
 
     private static Werkstoff cellsOnly(int id, String name, short[] rgb, boolean gas) {
+        return cellsOnly(id, name, "D₂O", rgb, gas);
+    }
+
+    private static Werkstoff cellsOnly(int id, String name, String formula, short[] rgb, boolean gas) {
         checkFree(id, name);
         return new Werkstoff(
             rgb,
             name,
-            "D₂O",
+            formula,
             new Werkstoff.Stats().setGas(gas),
             Werkstoff.Types.COMPOUND,
             new Werkstoff.GenerationFeatures().disable()
@@ -104,6 +129,9 @@ public final class ModWerkstoffs implements Runnable {
         check(SUPERHEATED_HEAVY_WATER_STEAM_ID, superheatedHeavyWaterSteam);
         check(SUPERCRITICAL_HEAVY_WATER_STEAM_ID, supercriticalHeavyWaterSteam);
         check(CORIUM_ID, corium);
+        check(R134A_ID, r134a);
+        check(TRICHLOROETHYLENE_ID, trichloroethylene);
+        check(CHLOROTRIFLUOROETHANE_ID, chlorotrifluoroethane);
     }
 
     private static void check(int id, Werkstoff ours) {

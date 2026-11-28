@@ -23,12 +23,12 @@ import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData;
 public class CoolantLoopEngine {
 
     private CoolantFluidProperty fluid;
-    private final List<LoopSegment> segments = new ArrayList<>();
+    protected final List<LoopSegment> segments = new ArrayList<>();
     /** See Note [The advection graph is kept between steps] */
-    private final LoopAdvection.Plan advectionPlan = new LoopAdvection.Plan();
+    protected final LoopAdvection.Plan advectionPlan = new LoopAdvection.Plan();
 
     // State variables
-    private double volumetricFlowRate = 0.0; // m^3/s
+    protected double volumetricFlowRate = 0.0; // m^3/s
     private double maxVolumetricFlowRate = Double.MAX_VALUE; // m^3/s (capped by pump connected pipe capacity)
     private double pumpMechanicalPowerWatts = 0.0; // Mechanical power output from motor/rotor (Watts)
     private boolean isPumpPowered = false;
@@ -51,12 +51,12 @@ public class CoolantLoopEngine {
     public static final double FREEZE_TOLERANCE_CELSIUS = 1e-6;
 
     // Simulation status
-    private boolean isRuptured = false;
-    private LoopSegment rupturedSegment = null;
+    protected boolean isRuptured = false;
+    protected LoopSegment rupturedSegment = null;
     private LoopFailure failure = null;
     private Object[] failureArgs = new Object[0];
-    private double peakLoopPressureBar = 0.0;
-    private double peakLoopTempCelsius = 20.0;
+    protected double peakLoopPressureBar = 0.0;
+    protected double peakLoopTempCelsius = 20.0;
     private double pumpHeadPressurePa = 0.0;
     private final Map<String, Long> dissolvedGases = new LinkedHashMap<>();
     private double fallbackGasFraction = 0.0;
@@ -227,7 +227,7 @@ public class CoolantLoopEngine {
     }
 
     /** Every change to the segment list comes here. See Note [The advection graph is kept between steps] */
-    private void segmentsChanged() {
+    protected void segmentsChanged() {
         advectionPlan.segmentsChanged();
     }
 
@@ -370,6 +370,19 @@ public class CoolantLoopEngine {
         this.volumetricFlowRate = Math.min(maxVolumetricFlowRate, Math.max(0.0, q));
     }
 
+    /**
+     * Volumetric flow (m^3/s) through one segment: the loop's flow times the segment's share. A gas loop's flow
+     * varies around the loop with the gas's density (GasLoopEngine).
+     */
+    public double getLocalVolumetricFlow(LoopSegment segment) {
+        return volumetricFlowRate * segment.getFlowFraction();
+    }
+
+    /** Whether this loop carries a gas (GasLoopEngine). */
+    public boolean isGasLoop() {
+        return false;
+    }
+
     public double getPumpMechanicalPowerWatts() {
         return pumpMechanicalPowerWatts;
     }
@@ -420,7 +433,7 @@ public class CoolantLoopEngine {
         return failure != null ? String.format(failure.english, failureArgs) : null;
     }
 
-    private void fail(LoopFailure why, Object... args) {
+    protected void fail(LoopFailure why, Object... args) {
         this.failure = why;
         this.failureArgs = args;
     }

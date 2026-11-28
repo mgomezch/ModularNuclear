@@ -23,6 +23,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.CrawlResult;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.CoolantPumpCore;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
@@ -315,7 +316,7 @@ public class CoolantPumpStructureTest {
         pump.getEngine()
             .setFluid(CoolantFluidProperty.WATER);
         assertTrue(pump.stepCoolantLoop());
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.STOPPED, pump.getLoopState());
         assertTrue(
             pump.getLoopStatus()
                 .contains("Plain regular water cannot be used in a coolant loop"));
@@ -364,7 +365,7 @@ public class CoolantPumpStructureTest {
         pump.getReservoir()
             .setReservoirTemperatureCelsius(20.0);
         assertTrue(pump.stepCoolantLoop());
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.STOPPED, pump.getLoopState());
         assertTrue(
             pump.getLoopStatus()
                 .contains("below declared GregTech melting point"));
@@ -596,7 +597,7 @@ public class CoolantPumpStructureTest {
         // Feeding liquid nuclear fuel immediately fails pump and voids impeller
         pump.failOnLiquidNuclearFuel("uraniumbasedliquidfuel");
 
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.STOPPED, pump.getLoopState());
         assertNull(pump.getRotor(), "Impeller must be destroyed/voided");
         assertEquals(0.0, pump.getRotorEfficiency(), 1e-6);
         assertFalse(
@@ -743,7 +744,7 @@ public class CoolantPumpStructureTest {
             .setFluid(CoolantFluidProperty.LAVA);
 
         assertTrue(pumpOverworld.stepCoolantLoop());
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pumpOverworld.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.STOPPED, pumpOverworld.getLoopState());
         assertEquals("Pump refused to start: Lava is too viscous here!", pumpOverworld.getLoopStatus());
 
         // 4. Pump in Nether accepts lava and bypasses melting temperature check
@@ -881,7 +882,7 @@ public class CoolantPumpStructureTest {
             .setFluid(CoolantFluidProperty.DISTILLED_WATER);
         pump.setRequiredFillLiters(1000L);
         pump.setCurrentFillLiters(1000L);
-        pump.setLoopState(MTECoolantPump.LoopState.CIRCULATING);
+        pump.setLoopState(CoolantPumpCore.LoopState.CIRCULATING);
         return pump;
     }
 
@@ -902,7 +903,7 @@ public class CoolantPumpStructureTest {
         assertEquals(10000L - 2048L, hatchEU[0]);
         assertTrue(pump.isAllowedToWork());
         assertFalse(pump.isPowerFailed());
-        assertEquals(MTECoolantPump.LoopState.CIRCULATING, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.CIRCULATING, pump.getLoopState());
 
         // Drain until insufficient EU (< 2048)
         hatchEU[0] = 1000L;
@@ -912,7 +913,7 @@ public class CoolantPumpStructureTest {
         assertFalse(pump.isAllowedToWork());
         assertFalse(pumpAllowed[0]);
         assertTrue(pump.isPowerFailed());
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.STOPPED, pump.getLoopState());
         assertEquals(1000L, hatchEU[0]); // Atomic: not partially drained!
         assertEquals(
             gregtech.api.util.shutdown.ShutDownReasonRegistry.POWER_LOSS.getDisplayString(),
@@ -938,7 +939,7 @@ public class CoolantPumpStructureTest {
         assertTrue(pump.stepCoolantLoop());
         assertEquals(10000L - 2048L, hatchEU[0]);
         assertTrue(pump.isAllowedToWork());
-        assertEquals(MTECoolantPump.LoopState.CIRCULATING, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.CIRCULATING, pump.getLoopState());
     }
 
     @Test
@@ -1010,14 +1011,14 @@ public class CoolantPumpStructureTest {
         // Loop is un-filled
         pump.setRequiredFillLiters(10000L);
         pump.setCurrentFillLiters(0L);
-        pump.setLoopState(MTECoolantPump.LoopState.FILLING);
+        pump.setLoopState(CoolantPumpCore.LoopState.FILLING);
 
         assertTrue(pump.stepCoolantLoop());
 
         // Must powerfail during filling phase
         assertFalse(pump.isAllowedToWork());
         assertTrue(pump.isPowerFailed());
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.STOPPED, pump.getLoopState());
     }
 
     @Test
@@ -1445,7 +1446,7 @@ public class CoolantPumpStructureTest {
         pump.getEngine()
             .setFluid(CoolantFluidProperty.SODIUM);
         pump.setCurrentFillLiters(1000L);
-        pump.setLoopState(MTECoolantPump.LoopState.CIRCULATING);
+        pump.setLoopState(CoolantPumpCore.LoopState.CIRCULATING);
 
         boolean stepResult = pump.stepCoolantLoop();
         assertFalse(stepResult, "Unpowered loop with solidified fluid must fail");
@@ -1453,7 +1454,7 @@ public class CoolantPumpStructureTest {
             pump.getEngine()
                 .isRuptured(),
             "Engine must be marked ruptured");
-        assertEquals(MTECoolantPump.LoopState.FAILED, pump.getLoopState(), "Pump state must be FAILED");
+        assertEquals(CoolantPumpCore.LoopState.FAILED, pump.getLoopState(), "Pump state must be FAILED");
         assertNotNull(
             pump.getEngine()
                 .getRupturedSegment());
@@ -1504,7 +1505,7 @@ public class CoolantPumpStructureTest {
         pump.getEngine()
             .setFluid(CoolantFluidProperty.WATER);
         pump.setCurrentFillLiters(1000L);
-        pump.setLoopState(MTECoolantPump.LoopState.CIRCULATING);
+        pump.setLoopState(CoolantPumpCore.LoopState.CIRCULATING);
 
         // Simulate overpressure burst (> 5 bar rating)
         pump.getEngine()
@@ -1517,7 +1518,7 @@ public class CoolantPumpStructureTest {
         // Ruptures and spills fluid
         boolean result = pump.stepCoolantLoop();
         assertFalse(result);
-        assertEquals(MTECoolantPump.LoopState.FAILED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.FAILED, pump.getLoopState());
 
         // Verify fluid placement and block update
         Mockito.verify(mockWorld, Mockito.atLeastOnce())
@@ -1579,14 +1580,14 @@ public class CoolantPumpStructureTest {
         pump.getEngine()
             .setFluid(noSpillProp);
         pump.setCurrentFillLiters(1000L);
-        pump.setLoopState(MTECoolantPump.LoopState.CIRCULATING);
+        pump.setLoopState(CoolantPumpCore.LoopState.CIRCULATING);
 
         pump.getEngine()
             .setRuptured(true);
 
         boolean result = pump.stepCoolantLoop();
         assertFalse(result);
-        assertEquals(MTECoolantPump.LoopState.FAILED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.FAILED, pump.getLoopState());
 
         // Verify setBlock was NEVER called because spillOnRupture is false
         Mockito.verify(mockWorld, Mockito.never())
@@ -1636,14 +1637,14 @@ public class CoolantPumpStructureTest {
         pump.getEngine()
             .setFluid(CoolantFluidProperty.WATER);
         pump.setCurrentFillLiters(1000L);
-        pump.setLoopState(MTECoolantPump.LoopState.CIRCULATING);
+        pump.setLoopState(CoolantPumpCore.LoopState.CIRCULATING);
 
         pump.getEngine()
             .setRuptured(true);
 
         // Should not throw any exception
         assertDoesNotThrow(() -> pump.stepCoolantLoop());
-        assertEquals(MTECoolantPump.LoopState.FAILED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.FAILED, pump.getLoopState());
         Mockito.verify(mockWorld, Mockito.never())
             .setBlock(
                 Mockito.anyInt(),
@@ -1760,7 +1761,7 @@ public class CoolantPumpStructureTest {
         pump.applyCrawlResult(CrawlResult.fail(LocalizedText.literal("pipe removed")));
         assertEquals(1000L, pump.getCurrentFillLiters());
         assertTrue(pump.isLoopAtRest());
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.STOPPED, pump.getLoopState());
         assertNotRunning(pump);
     }
 
@@ -1832,7 +1833,7 @@ public class CoolantPumpStructureTest {
             assertNotRunning(pump);
         }
         assertEquals(2000L, pump.getCurrentFillLiters());
-        assertEquals(MTECoolantPump.LoopState.FAILED, pump.getLoopState());
+        assertEquals(CoolantPumpCore.LoopState.FAILED, pump.getLoopState());
 
         pump.setSimulatedCoolantLiters(5000L);
         stepUntilFlowing(pump);

@@ -1,4 +1,4 @@
-package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
+package com.gtnewhorizons.modularnuclear.common.coolantloop.pump;
 
 import java.util.Map;
 
@@ -10,6 +10,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
@@ -27,12 +28,12 @@ final class CoolantPumpCirculation {
     private CoolantPumpCirculation() {}
 
     /** One tick of the loop. False when the loop failed (it ruptured or exploded). */
-    static boolean step(MTECoolantPump p) {
+    static boolean step(CoolantPumpCore p) {
         if (!p.mLoopFormed || p.mEngine.getSegments()
             .isEmpty()) {
-            if (p.mLoopState != MTECoolantPump.LoopState.EMPTY && p.mLoopState != MTECoolantPump.LoopState.STOPPED
-                && p.mLoopState != MTECoolantPump.LoopState.FAILED) {
-                p.mLoopState = MTECoolantPump.LoopState.STOPPED;
+            if (p.mLoopState != CoolantPumpCore.LoopState.EMPTY && p.mLoopState != CoolantPumpCore.LoopState.STOPPED
+                && p.mLoopState != CoolantPumpCore.LoopState.FAILED) {
+                p.mLoopState = CoolantPumpCore.LoopState.STOPPED;
             }
             IGregTechTileEntity baseTE = p.getBaseMetaTileEntity();
             if (baseTE != null && baseTE.isActive()) {
@@ -65,6 +66,14 @@ final class CoolantPumpCirculation {
         p.mReservoir.updateReservoirState();
         p.mEngine.setHoldsCoolant(p.mCurrentFillLiters > 0);
 
+        // See Note [The pump on a gas loop]
+        GasProperty loopGas = CoolantPumpGasLoop.loopGas(p, p.getReservoirFluid());
+        if (loopGas != null) return CoolantPumpGasLoop.step(p, baseTE, loopGas);
+        if (p.mCurrentFillLiters <= 0L) CoolantPumpGasLoop.useEngineFor(p, null);
+
+        // A pump without an impeller only runs gas loops. See Note [Pump cores and their hosts]
+        PumpImpeller impeller = p.host.getImpeller();
+        if (impeller == null) return stepWithoutImpeller(p, baseTE);
         // Draw electrical power if allowed to work (soft hammer / redstone control)
         boolean isWorking = p.isAllowedToWork();
         if (!isWorking) {
@@ -73,16 +82,16 @@ final class CoolantPumpCirculation {
             p.mEngine.setPumpMechanicalPowerWatts(0.0);
             p.mEngine.setBraking(false);
             if (p.isPowerFailed()) {
-                p.setLoopStatus(MTECoolantPump.shutDownText(ShutDownReasonRegistry.POWER_LOSS));
+                p.setLoopStatus(CoolantPumpCore.shutDownText(ShutDownReasonRegistry.POWER_LOSS));
             } else if (baseTE.wasShutdown() && baseTE.getLastShutDownReason() != null) {
-                p.setLoopStatus(MTECoolantPump.shutDownText(baseTE.getLastShutDownReason()));
-            } else if (p.mLoopState == MTECoolantPump.LoopState.FILLING) {
+                p.setLoopStatus(CoolantPumpCore.shutDownText(baseTE.getLastShutDownReason()));
+            } else if (p.mLoopState == CoolantPumpCore.LoopState.FILLING) {
                 p.setLoopStatusKey(
                     "modularnuclear.coolant_loop.pump.status.filling_paused",
                     p.mCurrentFillLiters,
                     p.mRequiredFillLiters);
-            } else if (p.mLoopState == MTECoolantPump.LoopState.DECELERATING
-                || p.mLoopState == MTECoolantPump.LoopState.DRAINING) {
+            } else if (p.mLoopState == CoolantPumpCore.LoopState.DECELERATING
+                || p.mLoopState == CoolantPumpCore.LoopState.DRAINING) {
                     p.setLoopStatusKey(
                         "modularnuclear.coolant_loop.pump.status.stopping_paused",
                         p.mCurrentFillLiters,
@@ -101,10 +110,10 @@ final class CoolantPumpCirculation {
 
         // Validate fluid in reservoir / loop: liquid nuclear fuel fails pump and destroys impeller immediately!
         FluidStack reservoirFluid = p.getReservoirFluid();
-        MTECoolantPump.Step refuseUnsuitableFluidResult = CoolantPumpFluidSafety
+        CoolantPumpCore.Step refuseUnsuitableFluidResult = CoolantPumpFluidSafety
             .refuseUnsuitableFluid(p, reservoirFluid);
-        if (refuseUnsuitableFluidResult != MTECoolantPump.Step.CARRY_ON)
-            return refuseUnsuitableFluidResult == MTECoolantPump.Step.DONE;
+        if (refuseUnsuitableFluidResult != CoolantPumpCore.Step.CARRY_ON)
+            return refuseUnsuitableFluidResult == CoolantPumpCore.Step.DONE;
 
         // Validate molten fluid temperature
         CoolantFluidProperty currentProp = p.mEngine.getFluid();
@@ -113,26 +122,26 @@ final class CoolantPumpCirculation {
                 reservoirFluid.getFluid()
                     .getName());
         }
-        boolean isMolten = p
+        boolean isMolten = CoolantFluidHelper
             .isMoltenFluid(reservoirFluid != null ? reservoirFluid.getFluid() : null, reservoirFluid, currentProp);
 
         World loopWorld = p.getBaseMetaTileEntity() != null ? p.getBaseMetaTileEntity()
             .getWorld() : null;
-        boolean isLavaNether = ((reservoirFluid != null && MTECoolantPump.isLava(reservoirFluid))
-            || (currentProp != null && currentProp.isLava())) && MTECoolantPump.isNetherWorld(loopWorld);
+        boolean isLavaNether = ((reservoirFluid != null && CoolantFluidHelper.isLava(reservoirFluid))
+            || (currentProp != null && currentProp.isLava())) && CoolantFluidHelper.isNetherWorld(loopWorld);
 
-        MTECoolantPump.Step checkMoltenCoolantResult = checkMoltenCoolant(
+        CoolantPumpCore.Step checkMoltenCoolantResult = checkMoltenCoolant(
             p,
             reservoirFluid,
             currentProp,
             isMolten,
             isLavaNether);
-        if (checkMoltenCoolantResult != MTECoolantPump.Step.CARRY_ON)
-            return checkMoltenCoolantResult == MTECoolantPump.Step.DONE;
+        if (checkMoltenCoolantResult != CoolantPumpCore.Step.CARRY_ON)
+            return checkMoltenCoolantResult == CoolantPumpCore.Step.DONE;
 
         // Require valid turbine rotor impeller in controller slot
-        if (!p.updateRotorEfficiency()) {
-            p.mLoopState = MTECoolantPump.LoopState.STOPPED;
+        if (!impeller.updateRotorEfficiency()) {
+            p.mLoopState = CoolantPumpCore.LoopState.STOPPED;
             p.mEngine.setPumpPowered(false);
             p.mEngine.setPumpMechanicalPowerWatts(0.0);
             p.mEngine.setBraking(false);
@@ -144,38 +153,38 @@ final class CoolantPumpCirculation {
 
         // Impeller melting check: if fluid temperature exceeds impeller melting point, melt catastrophically!
         double pumpFluidTemp = p.getPumpFluidTemperatureCelsius();
-        Materials rotorMat = p.getRotorMaterial();
+        Materials rotorMat = impeller.getRotorMaterial();
         double th = RotorThermalHelper.calculateHomologousTemperature(pumpFluidTemp, rotorMat);
         if (RotorThermalHelper.isMelted(th)) {
-            p.failOnImpellerMelting(pumpFluidTemp, rotorMat);
+            impeller.failOnImpellerMelting(pumpFluidTemp, rotorMat);
             return p.stepCoastingAndCheckRupture();
         }
 
         // Check if high-pressure output hatch is disabled by machine controller cover
         boolean dischargeDisabled = p.isDischargeHatchDisabled();
-        MTECoolantPump.Step stepWithDischargeDisabledResult = CoolantPumpFillDrain
+        CoolantPumpCore.Step stepWithDischargeDisabledResult = CoolantPumpFillDrain
             .stepWithDischargeDisabled(p, baseTE, dischargeDisabled);
-        if (stepWithDischargeDisabledResult != MTECoolantPump.Step.CARRY_ON)
-            return stepWithDischargeDisabledResult == MTECoolantPump.Step.DONE;
+        if (stepWithDischargeDisabledResult != CoolantPumpCore.Step.CARRY_ON)
+            return stepWithDischargeDisabledResult == CoolantPumpCore.Step.DONE;
 
         p.mEngine.setBraking(false);
 
         // A loop at rest may have changed. See Note [Changing a stopped coolant loop]
-        MTECoolantPump.Step stepRestartCrawlResult = CoolantPumpFillDrain.stepRestartCrawl(p, baseTE);
-        if (stepRestartCrawlResult != MTECoolantPump.Step.CARRY_ON)
-            return stepRestartCrawlResult == MTECoolantPump.Step.DONE;
-        MTECoolantPump.Step stepReturningExcessResult = CoolantPumpFillDrain.stepReturningExcess(p, baseTE);
-        if (stepReturningExcessResult != MTECoolantPump.Step.CARRY_ON)
-            return stepReturningExcessResult == MTECoolantPump.Step.DONE;
+        CoolantPumpCore.Step stepRestartCrawlResult = CoolantPumpFillDrain.stepRestartCrawl(p, baseTE);
+        if (stepRestartCrawlResult != CoolantPumpCore.Step.CARRY_ON)
+            return stepRestartCrawlResult == CoolantPumpCore.Step.DONE;
+        CoolantPumpCore.Step stepReturningExcessResult = CoolantPumpFillDrain.stepReturningExcess(p, baseTE);
+        if (stepReturningExcessResult != CoolantPumpCore.Step.CARRY_ON)
+            return stepReturningExcessResult == CoolantPumpCore.Step.DONE;
 
         // Initial Loop Filling Phase (when hatch is enabled)
-        MTECoolantPump.Step stepFillingResult = CoolantPumpFillDrain
+        CoolantPumpCore.Step stepFillingResult = CoolantPumpFillDrain
             .stepFilling(p, baseTE, reservoirFluid, currentProp);
-        if (stepFillingResult != MTECoolantPump.Step.CARRY_ON) return stepFillingResult == MTECoolantPump.Step.DONE;
+        if (stepFillingResult != CoolantPumpCore.Step.CARRY_ON) return stepFillingResult == CoolantPumpCore.Step.DONE;
 
         // Active Circulation Phase
-        p.checkMaintenance();
-        double effFactor = p.getEfficiencyFactor();
+        impeller.checkMaintenance();
+        double effFactor = impeller.getEfficiencyFactor();
         long requiredEU = p.getRequiredPowerDrawEU();
         boolean hasPower = p.drainEnergy(requiredEU);
         if (!hasPower) {
@@ -203,15 +212,15 @@ final class CoolantPumpCirculation {
             }
         }
 
-        p.mLoopState = MTECoolantPump.LoopState.CIRCULATING;
+        p.mLoopState = CoolantPumpCore.LoopState.CIRCULATING;
         p.mEngine.setPumpPowered(true);
         double wattsPerEu = (CoolantLoopDataRegistry.getPhysicsData() != null)
             ? CoolantLoopDataRegistry.getPhysicsData()
                 .getPumpMechanicalPowerPerEU()
             : 80.0;
-        double mechanicalWatts = requiredEU * wattsPerEu * p.mRotorEfficiency * effFactor;
+        double mechanicalWatts = requiredEU * wattsPerEu * impeller.getRotorEfficiency() * effFactor;
         p.mEngine.setPumpMechanicalPowerWatts(mechanicalWatts);
-        p.degradeRotor(requiredEU);
+        impeller.degradeRotor(requiredEU);
 
         syncDissolvedGases(p);
 
@@ -220,9 +229,9 @@ final class CoolantPumpCirculation {
 
         // Process thermal exchange across in-line devices matching segment ID
         double flowRate = p.mEngine.getVolumetricFlowRate();
-        for (MTECoolantPump.DeviceSegmentBinding b : p.getDeviceBindings()) {
+        for (CoolantPumpCore.DeviceSegmentBinding b : p.getDeviceBindings()) {
             b.device.processThermalExchange(
-                MTECoolantPump.branchFlow(flowRate, b.segment),
+                b.segment != null ? p.mEngine.getLocalVolumetricFlow(b.segment) : flowRate,
                 0.05,
                 p.mEngine.getFluid(),
                 b.segment);
@@ -237,11 +246,24 @@ final class CoolantPumpCirculation {
         return true;
     }
 
+    /** A gas-only pump whose tank holds no gas it knows: it waits, and whatever its loop still holds settles. */
+    private static boolean stepWithoutImpeller(CoolantPumpCore p, IGregTechTileEntity baseTE) {
+        baseTE.setActive(false);
+        if (p.mLoopState == CoolantPumpCore.LoopState.CIRCULATING) p.mLoopState = CoolantPumpCore.LoopState.STOPPED;
+        p.mEngine.setPumpPowered(false);
+        p.mEngine.setPumpMechanicalPowerWatts(0.0);
+        p.mEngine.setBraking(false);
+        p.setLoopStatusKey(
+            p.getReservoirFluid() == null ? "modularnuclear.gas_loop.pump.status.no_gas"
+                : "modularnuclear.gas_loop.pump.status.not_a_gas");
+        return true;
+    }
+
     /**
      * A molten coolant must be at its melting point or hotter to fill or flow. Returns CARRY_ON to carry on
      * with the step.
      */
-    private static MTECoolantPump.Step checkMoltenCoolant(MTECoolantPump p, FluidStack reservoirFluid,
+    private static CoolantPumpCore.Step checkMoltenCoolant(CoolantPumpCore p, FluidStack reservoirFluid,
         CoolantFluidProperty currentProp, boolean isMolten, boolean isLavaNether) {
         if (isMolten && !isLavaNether) {
             double declaredMelting = CoolantFluidHelper.getMeltingPointCelsius(
@@ -263,7 +285,7 @@ final class CoolantPumpCirculation {
                             declaredMelting,
                             currentProp != null ? currentProp.getFluidName() : "molten fluid"),
                         p.mEngine.getRupturedSegment());
-                    return MTECoolantPump.Step.FAILED;
+                    return CoolantPumpCore.Step.FAILED;
                 }
             } else {
                 // Loop is empty (before initial fill): refuse to fill if the reservoir is below the melting point.
@@ -277,7 +299,7 @@ final class CoolantPumpCirculation {
                         p.getBiomeTemperatureCelsius());
                 }
                 if (resTemp < declaredMelting - CoolantLoopEngine.FREEZE_TOLERANCE_CELSIUS) {
-                    p.mLoopState = MTECoolantPump.LoopState.STOPPED;
+                    p.mLoopState = CoolantPumpCore.LoopState.STOPPED;
                     p.mEngine.setPumpPowered(false);
                     p.mEngine.setPumpMechanicalPowerWatts(0.0);
                     p.mEngine.setBraking(false);
@@ -286,15 +308,15 @@ final class CoolantPumpCirculation {
                         resTemp,
                         declaredMelting,
                         currentProp != null ? currentProp.getFluidName() : "molten fluid");
-                    return MTECoolantPump.Step.DONE;
+                    return CoolantPumpCore.Step.DONE;
                 }
             }
         }
-        return MTECoolantPump.Step.CARRY_ON;
+        return CoolantPumpCore.Step.CARRY_ON;
     }
 
     /** Hands the reservoir's dissolved gases to the engine and every segment when they changed. */
-    private static void syncDissolvedGases(MTECoolantPump p) {
+    private static void syncDissolvedGases(CoolantPumpCore p) {
         long currentGasVer = p.mReservoir.getDissolvedGasesVersion();
         if (p.mLastSyncedGasVersion != currentGasVer) {
             p.mLastSyncedGasVersion = currentGasVer;

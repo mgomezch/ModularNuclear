@@ -22,6 +22,14 @@ public class NEIConfig implements IConfigureNEI {
         API.registerRecipeHandler(neutronHandler);
         API.registerUsageHandler(neutronHandler);
 
+        NEICompactLoopHandler compactHandler = new NEICompactLoopHandler();
+        API.registerRecipeHandler(compactHandler);
+        API.registerUsageHandler(compactHandler);
+        ItemStack compactPump = NEICompactLoopHandler.getDisplayStack();
+        if (compactPump != null) {
+            for (String id : compactHandlerIds()) GuiRecipeTab.handlerMap.put(id, compactHandlerInfo(id, compactPump));
+        }
+
         NEIFuelStatsHandler fuelHandler = new NEIFuelStatsHandler();
         API.registerRecipeHandler(fuelHandler);
         API.registerUsageHandler(fuelHandler);
@@ -74,8 +82,26 @@ public class NEIConfig implements IConfigureNEI {
         }
     }
 
+    /** The names NEI may look the compact machines' handler up by: its id, its class and its tab's name. */
+    private static String[] compactHandlerIds() {
+        return new String[] { NEICompactLoopHandler.OVERLAY_ID, NEICompactLoopHandler.class.getName(),
+            new NEICompactLoopHandler().getRecipeName() };
+    }
+
+    private static HandlerInfo compactHandlerInfo(String id, ItemStack display) {
+        return new HandlerInfo.Builder(id, "Modular Nuclear", ModularNuclear.MODID).setDisplayStack(display)
+            .setMaxRecipesPerPage(1)
+            .setHeight(NEICompactLoopHandler.HEIGHT)
+            .setShowOverlayButton(false)
+            .build();
+    }
+
     @SubscribeEvent
     public void registerHandlerInfo(NEIRegisterHandlerInfosEvent event) {
+        ItemStack compactPump = NEICompactLoopHandler.getDisplayStack();
+        if (compactPump != null) {
+            for (String id : compactHandlerIds()) event.registerHandlerInfo(compactHandlerInfo(id, compactPump));
+        }
         ItemStack controller = NEIFuelStatsHandler.getControllerStack();
         if (controller != null) {
             event.registerHandlerInfo(

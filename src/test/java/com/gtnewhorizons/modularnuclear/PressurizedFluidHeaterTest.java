@@ -23,10 +23,10 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.CoolantPumpCore;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedOutput;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.HeaterPipeCasingTier;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PressurizedFluidHeaterStructure;
@@ -828,7 +828,7 @@ public class PressurizedFluidHeaterTest {
         // Verify that a real MTECoolantPump in an active/filled loop ruptures when PFH powerfails
         TestCoolantPump realPump = new TestCoolantPump("test_pump");
         realPump.setLoopFormed(true);
-        realPump.setLoopState(MTECoolantPump.LoopState.CIRCULATING);
+        realPump.setLoopState(CoolantPumpCore.LoopState.CIRCULATING);
         realPump.setCurrentFillLiters(4000L);
         realPump.setSimulatedTankCapacityLiters(16000L);
         realPump.setSimulatedCoolantLiters(10000L);
@@ -844,7 +844,7 @@ public class PressurizedFluidHeaterTest {
                 .isRuptured(),
             "Active pump loop must rupture when PFH powerfails");
         assertEquals(
-            MTECoolantPump.LoopState.FAILED,
+            CoolantPumpCore.LoopState.FAILED,
             realPump.getLoopState(),
             "Pump state must transition to FAILED on PFH powerfail rupture");
         assertEquals(

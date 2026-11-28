@@ -26,6 +26,10 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ILoopHatchOwner;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasLoopEngine;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.GasProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.gas.SegmentHeat;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.ICoolantPumpHost;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantBathGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantBathSlot;
@@ -260,6 +264,11 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         int activeCount = getActiveItemCount();
         // No flow, no exchange: items in a bath on a still loop keep their temperature
         if (activeCount <= 0 || coolantFlowRateM3s <= 1e-9) return;
+        if (segment.holdsGas() && mConnectedPump instanceof ICoolantPumpHost pump
+            && pump.getEngine() instanceof GasLoopEngine gasLoop) {
+            exchangeWithGas(gasLoop.getGas(), coolantFlowRateM3s, dt, segment);
+            return;
+        }
 
         double velocity = segment.getArea() > 0 ? (coolantFlowRateM3s / segment.getArea()) : 0.0;
         ConvectiveHeatTransferModel conv = getConvectiveModel();
@@ -317,6 +326,64 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
                 mPrimaryOutlet.setCurrentTemperatureCelsius(newCoolantTemp);
             }
         }
+    }
+
+    /**
+     * The bath on a gas loop (the evaporator of a refrigeration loop): the same exchange as on a liquid loop, with
+     * the convection scaled by the gas's phase (SegmentHeat.phaseFactor), and the heat put into the gas flowing
+     * through (SegmentHeat). What the gas can take before it reaches the hottest item, or the coil's bound
+     * (SegmentHeat.coilBoundK), limits every slot alike, so no item cools by more than the gas takes up, and items
+     * cool as fast as the loop's flow carries their heat away.
+     */
+    private void exchangeWithGas(GasProperty gas, double flowM3s, double dt, LoopSegment segment) {
+        double velocity = segment.getArea() > 0 ? flowM3s / segment.getArea() : 0.0;
+        ConvectiveHeatTransferModel conv = getConvectiveModel();
+        double phase = SegmentHeat.phaseFactor(segment);
+        double efficiency = getHeatEfficiency();
+        double[] proposed = new double[mSlots.length];
+        double total = 0.0, hottestC = mCurrentCoolantTemp, coldestC = mCurrentCoolantTemp;
+        for (int i = 0; i < mSlots.length; i++) {
+            CoolantBathSlot slot = mSlots[i];
+            if (slot == null || slot.isEmpty()) continue;
+            double q = conv.computeHeatTransferRate(velocity, slot.surfaceArea, slot.currentTemp, mCurrentCoolantTemp)
+                * phase
+                * dt;
+            if (slot.isCryoCell) {
+                if (q >= 0) continue;
+                q = -Math.min(-q, Math.max(0.0, slot.heatCapacity - slot.absorbedHeatJoules));
+                proposed[i] = q;
+                total += q * efficiency;
+            } else {
+                proposed[i] = q;
+                total += q > 0 ? q * efficiency : q / efficiency;
+            }
+            hottestC = Math.max(hottestC, slot.currentTemp);
+            coldestC = Math.min(coldestC, slot.currentTemp);
+        }
+        if (total == 0.0) return;
+        double boundK = (total > 0 ? Math.min(hottestC + 273.15, SegmentHeat.coilBoundK(gas, segment))
+            : coldestC + 273.15);
+        double moved = SegmentHeat.exchange(gas, segment, boundK, total, dt);
+        double scale = moved / total;
+        for (int i = 0; i < mSlots.length; i++) {
+            CoolantBathSlot slot = mSlots[i];
+            if (slot == null || slot.isEmpty() || proposed[i] == 0.0) continue;
+            double q = proposed[i] * scale;
+            if (slot.isCryoCell) {
+                slot.absorbedHeatJoules += -q;
+            } else {
+                slot.currentTemp -= q / slot.heatCapacity;
+            }
+            slot.updateItemDamage();
+        }
+        mLastGasHeatWatts = moved / dt;
+    }
+
+    /** Heat the bath's items gave the gas over the last tick, W (gas loops only). */
+    private double mLastGasHeatWatts = 0.0;
+
+    public double getLastGasHeatWatts() {
+        return mLastGasHeatWatts;
     }
 
     // --- Machine Tick Logic ---

@@ -1011,6 +1011,120 @@ Exactly one maintenance hatch (any type) and exactly one energy hatch (single- o
 
 ---
 
+### 9.10 Gas loops (refrigeration)
+
+A loop whose pump's reservoir holds a **gas** is a gas loop: a refrigeration loop that cools a Coolant Bath, a PHE or another loop below ambient, rejecting the heat to air or to another loop.  Gas loops use the same pump, Railcraft reservoir, high-pressure pipes, manifolds, instruments and hatches as liquid loops, and four machines of their own (§9.11).  One-block versions of them, with a pump of their own, start at MV (§9.12).  They come in two kinds:
+
+- **Vapour compression**, with a condensing gas: R-134a, ammonia, propane or CO₂.  Compressor → condenser (radiator, or a PHE into another loop) → expansion valve → evaporator (Coolant Bath, PHE) → compressor.  The valve lets the high side's liquid down to the low side, where it flashes into a cold two-phase mix that boils in the evaporator at the low side's saturation temperature.
+- **Reverse Brayton**, with a permanent gas: helium, nitrogen or argon.  Compressor → aftercooler (radiator) → recuperator (a PHE joining two passes of the loop) → turbo-expander → cold load → recuperator → compressor.  The expander takes work out of the gas, which cools it; a gas throttled through a valve without a phase change keeps its temperature, so a Brayton loop needs the expander.
+
+**The gas model.** Each gas is an ideal-gas vapour over an incompressible liquid, with a saturation curve $\ln P_\text{sat} = A - B/T$ through its normal boiling point (CO₂: its triple point) and its critical point, and a latent heat $L(T) = L_0 + (c_{p,v} - c_{p,l})(T - T_0)$.  The curves are within a few per cent of real data where loops run: R-134a boils at 10.0 bar at 40 °C and at 1.96 bar at −10 °C.
+
+| Gas | Fluid | Boils at 1 atm | Critical point | Freezes | Kind |
+| :-- | :-- | --: | :-- | --: | :-- |
+| R-134a | `r134a` | −26.1 °C | 101 °C, 40.6 bar | −103 °C | condensing |
+| Ammonia | `ammonia` | −33.3 °C | 132 °C, 113 bar | −78 °C | condensing |
+| Propane | `propane` | −42.1 °C | 97 °C, 42.5 bar | −188 °C | condensing |
+| CO₂ | `carbondioxide` | (triple point −56.6 °C, 5.2 bar) | 31 °C, 73.8 bar | −56.6 °C | condensing |
+| Nitrogen | `nitrogen` | −195.8 °C | −147 °C, 34 bar | −210 °C | permanent |
+| Argon | `argon` | −185.9 °C | −122 °C, 48.6 bar | −189 °C | permanent |
+| Helium | `helium` | −268.9 °C | −268 °C, 2.3 bar | never | permanent |
+
+**Pressure zones.** The pressure stages (compressors, valves and expanders) split a gas loop into zones, each at one pressure.  A zone's pressure follows from the gas it holds and its temperature: the more gas is pushed into a zone, the higher its pressure, and a zone holding two-phase gas sits at the gas's saturation pressure for its temperature.  A zone full of liquid is all but incompressible: its pressure climbs steeply with every kilogram pushed into it.  A pipe above its rating bursts as on a liquid loop (§12.8), and gas colder than its freezing point freezes and ruptures the loop.  CO₂ condensing near 25 °C sits at 64 bar, past stainless steel's 70 bar once it warms a few degrees: CO₂ loops take titanium pipe.
+
+**Charge.** A gas loop's fill is its charge, counted in litres of the gas fluid at 0 °C and 1 atm.  The charge a loop takes follows from its volume and the pump's ambient temperature: for a condensing gas, enough that a fraction of the loop's volume is liquid at ambient (10% by default); for a permanent gas, enough for a charge pressure at ambient (10 bar by default).  A screwdriver on the pump's controller cycles the settings: 10, 5, 20, 30 and 2% liquid, and 10, 5, 20, 40 and 2 bar.  The pump charges a stopped loop at its fill rate, holding the gas at equilibrium at the reservoir's temperature as it goes.  Keep the reservoir topped up while it charges.
+
+The high side of a vapour-compression loop has to hold the liquid once the compressor pumps the low side down.  A Coolant Bath on a gas loop runs the gas through coils, which hold 5% of the bath's volume, so the bath doesn't flood a loop's charge; still, a large charge floods the high side, and the compressor then stops at its high-pressure cutout (below) instead of cooling.  The coils take the gas no hotter than 50 °C past its boiling point (or its inlet temperature, if that is hotter), however hot the bath's items: the items cool only by what the gas takes up.
+
+**The pump.** On a gas loop the pump needs no rotor and draws power only while it charges or takes the charge back.  It stays the loop's owner: it crawls the loop, keeps its chunks loaded, and the compressors run only while it is allowed to work.  Disabled, it stops the compressors and the loop equalizes through its valves and expanders until it comes to rest.  With its discharge hatch disabled it does the same and then takes the charge back into the reservoir.
+
+**Energy.** A compressor's shaft work costs one EU per $J_s$ joules, and an expander gives one EU per $J_s$ joules of its work times its generator efficiency ($J_s$ = 28,250 J, the equivalence §9.7 uses for steam).  What a refrigeration loop costs follows from its thermodynamics: its coefficient of performance (the heat its evaporator takes up per joule of work) is a fraction of Carnot's between the evaporator and the condenser.  Cooling hot ingots in a bath at −10 °C against air at 25 °C costs a small part of a Vacuum Freezer's EU; liquefying nitrogen through a Brayton loop costs several times the freezer's.
+
+**Reactors.** A passage on a gas loop exchanges heat at 2% of its rate on a liquid loop: gas loops are for refrigeration, not for cooling a core.
+
+### 9.11 Gas loop machines
+
+The four machines share one shape: a 3×3 cross-section 3 or more blocks long.  The front layer has the controller at its bottom centre and the high-pressure input hatch above it; each layer between front and back is a ring of eight tiered blocks around a core; the back layer has the high-pressure output hatch at its centre.  The front and back casings take the machine's maintenance, energy and dynamo hatches.  All the rings must be one tier.  To the loop, each machine is a run of the pipe feeding its input hatch, as long as the machine: it bursts at that pipe's rating.
+
+| Machine | Length | Casing | Rings | Core | Hatches |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| Gas Compressor | 3–9 | Clean Stainless Steel | Gearbox casings: steel, titanium, tungstensteel | Pipe casing | maintenance, energy |
+| Expansion Valve | 3–5 | Frost Proof | Frost Proof | Pipe casing (sets the orifice) | none |
+| Turbo-Expander | 3–7 | Stainless Steel Turbine | Gearbox casings | Pipe casing | maintenance, dynamo |
+| Radiator | 3–9 | Air Filter Vent | Air Filter Turbine (fans) T1–T3 | Pipe casing | maintenance, energy |
+
+**Gas Compressor.** Drives the loop: it draws gas from the zone before it and pushes it into the zone after it.  Its displacement is 20 m³/s of suction gas per ring at steel, four times that per gearbox tier; its volumetric efficiency falls as its pressure ratio rises.  It compresses with an isentropic efficiency of 75% (times its maintenance efficiency) and draws the shaft work as EU, up to what its energy hatches take in; with less power it runs slower.  At a wet suction it draws only the vapour's density's worth, and liquid at its suction (below 90% vapour) is **slugging**, which wears it: one maintenance issue per 10 s of it.  Its **high-pressure cutout** holds back its flow so its discharge zone stays below 70% of that zone's weakest pipe rating, and stops it if the zone reaches 80% anyway, until it falls back to 70%.
+
+**Expansion Valve.** Lets gas from the high side down to the low side through an orifice of up to 0.004 m² per ring at a bronze pipe casing, four times that per pipe casing tier, without power.  By default it is **thermostatic**: it opens as the gas leaving the evaporator it feeds gets more superheated than its set point (5 K), and closes as it gets wetter, so the evaporator runs full but no liquid reaches the compressor.  A screwdriver cycles its set points (5, 3, 8 and 12 K) and fixed openings (10, 25, 50 and 100%).  With the loop stopped it opens fully, so the loop equalizes.
+
+**Turbo-Expander.** Expands the gas through its nozzles (0.003 m² per ring at steel, four times that per gearbox tier) with an isentropic efficiency of 85%, cooling it, and puts out the work through its dynamo hatch at 90% efficiency; what the dynamo can't take is lost in its brake.  Disabled, it free-wheels: the gas passes through without cooling.  A screwdriver sets its nozzle opening (100, 75, 50, 25 and 10%); the nozzles set the loop's pressure ratio against the compressor's displacement.
+
+**Radiator.** Fans blow ambient air over the loop's fluid and carry its heat away, never below the pump's ambient temperature.  Each ring of fans gives 3 MW/K at T1, four times that per tier, and draws 32 EU/t at T1, four times that per tier; with its fans stopped (disabled or without power) only still air cools it, at 5%.  It works on liquid loops as well as gas loops.
+
+**PHE on gas loops.** A PHE's exchange on a gas loop takes the gas's phase into account (vapour exchanges poorly, boiling and condensing gas well), and it has two modes beyond boiling a secondary fluid:
+
+- **Dual-loop mode.** A pair of high-pressure hatches in place of its secondary input and output hatches joins a second loop, or a second pass of the same loop.  The PHE moves heat from the hotter stream to the colder as a counterflow exchanger, and draws its usual power.  A Brayton loop's recuperator is a PHE with both pairs on that loop.  It may join a liquid loop to a gas loop: a condenser into a liquid loop whose PHE makes steam, or an evaporator chilling a liquid loop.
+- **Liquefaction.** On a gas loop colder than a cryogen's boiling point less the approach temperature, a PHE with that cryogen's gas in its secondary input (nitrogen, oxygen, air or helium) condenses it into its liquid.  A litre takes up as much heat condensing as it gives off boiling (§9.7), so a round trip through two PHEs gains nothing.
+
+**R-134a.** R-134a is made from vinyl chloride: in the Large Chemical Reactor with chlorine to trichloroethylene, then in the Chemical Plant with hydrogen fluoride over a Solid Acid Catalyst to HCFC-133a (chlorotrifluoroethane), and again with hydrogen fluoride over a Brown Metal Catalyst to R-134a.  The hydrochloric acid each step gives off goes back to chlorine.
+
+### 9.12 Compact loop machines
+
+The compact loop machines are one-block versions of the gas loop's machines, in the five tiers from MV to LuV.  They make a small refrigeration loop possible from MV, two tiers before the high-pressure hatches a multiblock pump needs, and stay much weaker than the multiblocks at every tier.  A compact loop cools hot ingots at about the Vacuum Freezer's EU and pace at MV, where the alternative is a Chemical Bath at two to six times the freezer's, rising to nearly three times the freezer's EU efficiency at IV.
+
+**Shape.** A compact machine has a front, which faces whoever places it.  The loop runs straight through it across the front, by default from the left of the front to the right; the two sides show a pipe going in and a pipe coming out, and coolant pipes connect only there.  A screwdriver turns the loop's direction through the four the front leaves free: left to right, right to left, bottom to top, top to bottom.  Power enters through any other side but the front.  There are no hatches, no maintenance and no structure.  A right click opens a machine's GUI, laid out as a GregTech machine's: what goes in on the left, the progress arrow in the middle and what comes out on the right.  On the machines the loop only flows through, the two slots are the loop's gas at the inlet and outlet, and the arrow runs while the machine works, faster under more load.  Hover over the slots and the arrow for pressures, temperatures, flows and power, or read the machine with a portable scanner.  The machines that take EU have a power slot at the bottom of their GUI, as GregTech's machines do: while cables keep the machine more than two thirds full it charges the battery or tool in the slot, and with less than a third it runs from the battery, or burns redstone dust put in the slot.  The turbo-expander's power slot charges only.  Each machine is assembled at its own tier from that tier's hull and components.
+
+**Compact Loop Pump.** Owns the loop as the multiblock pump does (§9.10): it finds the loop, keeps its chunks loaded, charges it and lets its compressors run.  It differs in these ways:
+
+- Its reservoir is a stack of **Iron Tanks** standing on it, of any height but all of one kind.  The stack's kind does not have to match the pipes, which may be of any one material.
+- It runs **gas loops only**.
+- It runs loops up to its tier's volume of pipes and machines, and the pipes on its two sides burst at its own rating if that is lower than theirs.
+- It fills and drains at a fraction of a multiblock pump's rate, and draws a quarter of an ampere of its tier while it does.
+- Its charge settings are smaller than the multiblock's: 5, 3, 10, 20 and 2% liquid for a condensing gas, and for a permanent gas a quarter, an eighth, three eighths, a half and a sixteenth of its own pressure rating (4 bar by default at MV).  A screwdriver cycles them, as does the button in its GUI; sneak with the screwdriver to turn the loop's direction instead.  A refrigerant loop runs on the smaller charge at about a tenth less efficiency, and a Brayton loop needs the room under its rating.
+- **Stopped** (soft mallet, machine controller cover), it stops the compressors, waits for the loop to come to rest and takes the whole charge back into its tanks.  Stop it before rebuilding its loop or moving it.
+
+**Compact Gas Compressor.** Works with one ampere of its tier.  Three things set it apart from the multiblock compressor.  Its drive gives its shaft only a small share $\eta_d$ of its EU.  It has a **built-in pressure ratio** $r_b$: it compresses its gas at least that far whatever the loop's pressures, the excess going into the gas as heat, so a warm evaporator does not make the loop cheap to run.  And past $r_b$ it slows, stopping at $1.5\,r_b$, so a lightly loaded loop idles instead of pumping its evaporator down to a vacuum.  Liquid at its suction stays in its accumulator: it wears nothing.  The high-pressure cutout of §9.11 applies.
+
+**Compact Expansion Valve.** Thermostatic, holding 5 K of superheat; no power, no modes.
+
+**Compact Turbo-Expander.** For Brayton loops.  Its work comes out of its back as EU, up to one ampere of its tier.
+
+**Compact Radiator.** Its fan speeds up with the loop's temperature above ambient, reaching full speed (an eighth of an ampere of its tier) 6 K above it; a lightly loaded loop's fan idles at a tenth.
+
+**Compact Coolant Bath.** Cools hot ingots, a few at a time, on a gas loop.  Its GUI has a slot for hot ingots, shows the ingots being cooled (hover over one for its temperature), and has a slot the cooled ones come out of; the loop's gas through its coil is in the GUI's bottom corners; a right click with hot ingots in hand puts them straight in, and pipes, hoppers and conveyors put in and take out on any side but the front.  An ingot holds the same heat as in the multiblock Coolant Bath (§9.7), so compact and multiblock machines mix freely on one loop.  Each ingot takes about one and a half times the Vacuum Freezer's time for it.
+
+**Compact Heat Exchanger.** Does two of a PHE's jobs on a gas loop (§9.11):
+
+- **Liquefier.** Against a loop colder than a cryogen's boiling point less the approach temperature it liquefies nitrogen, oxygen, air or helium: it takes the gas in and gives the liquid out through its back, or its top and bottom, and its GUI's two tanks take and fill fluid cells.
+- **Recuperator.** It takes a second pass of a loop through its other free axis, from bottom to top when the first pass runs across its front, and moves heat from the hotter pass to the colder as a counterflow exchanger.  Both passes may be of one loop, or of two.
+
+A Brayton loop cold enough to liquefy nitrogen needs a Compact Turbo-Expander and two or more recuperators in a row: compressor → radiator → recuperators' first passes → expander → liquefier → recuperators' second passes, in reverse order → pump.
+
+| | MV | HV | EV | IV | LuV |
+| :-- | --: | --: | --: | --: | --: |
+| Works with (EU/t) | 120 | 480 | 1,920 | 7,680 | 30,720 |
+| Bursts above (bar) | 16 | 32 | 64 | 128 | 256 |
+| Holds of the loop's gas (L) | 250 | 1,667 | 8,444 | 37,333 | 163,556 |
+| Pump: largest loop (L) | 3,000 | 20,000 | 101,333 | 448,000 | 1,962,667 |
+| Pump: fill rate | 10% | 15% | 20% | 30% | 40% |
+| Compressor: drive efficiency $\eta_d$ | 9% | 15% | 19% | 21% | 23% |
+| Compressor: shaft power | 6.1 MW | 40.7 MW | 206 MW | 911 MW | 3.99 GW |
+| Compressor: isentropic efficiency | 60% | 64% | 68% | 71% | 74% |
+| Compressor: built-in ratio $r_b$ | 2.4 | 2.3 | 2.2 | 2.1 | 2.0 |
+| Expander: isentropic efficiency | 55% | 62% | 68% | 73% | 77% |
+| Radiator: conductance (MW/K) | 2.1 | 9.6 | 43 | 192 | 845 |
+| Heat exchanger: conductance (MW/K) | 0.3 | 2.0 | 10 | 45 | 196 |
+| Radiator: fan at full speed (EU/t) | 15 | 60 | 240 | 960 | 3,840 |
+| Bath: ingots at a time | 2 | 3 | 4 | 6 | 8 |
+| Loop against the Vacuum Freezer, EU per ingot | 1.0× | 1.7× | 2.3× | 2.8× | 2.8× |
+| Loop against the Vacuum Freezer, pace | 1.0× | 1.6× | 1.8× | 2.2× | 3.5× |
+
+The last two rows are for a loop of one compressor, radiator, valve and bath on an ingot the freezer cools at that tier's voltage (Silicon Solar Grade, Titanium, Tungstensteel, Naquadah), in air at 20 °C.  A loop on ingots far below its tier is quick but wasteful.
+
+A higher tier moves more gas, so its machines hold more of it, and its loop takes a far larger charge: about 20,000 L of R-134a for an MV loop, one Iron Tank's worth, but hundreds of thousands at EV and millions at IV.  The machines' pressure ratings choose the gas as well: R-134a condenses near 9 bar in mild air and suits MV, ammonia and propane need HV's 32 bar, and CO₂ needs IV.  In a hot biome an MV loop on R-134a runs into its cutout.  By IV the multiblocks are the better machines.
+
+---
+
 ## 10. Byproducts and transmutation
 
 | Process | Trigger | Output |

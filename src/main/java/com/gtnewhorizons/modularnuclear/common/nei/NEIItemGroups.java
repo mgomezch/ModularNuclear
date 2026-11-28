@@ -7,6 +7,7 @@ import java.util.function.IntUnaryOperator;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.compact.CompactLoopMachines;
 
 /*-
 Note [NEI item groups from the mod] (generated)
@@ -63,6 +64,9 @@ public final class NEIItemGroups {
                 lines,
                 "coolant_pipes." + CoolantLoopMetaTileEntities.SIZE_NAMES[s].toLowerCase(),
                 ids(pipeMaterials, m -> CoolantLoopMetaTileEntities.getPipeId(m, size)));
+        }
+        for (CompactLoopMachines.Kind kind : CompactLoopMachines.Kind.values()) {
+            group(lines, kind.name, range(kind.firstId, CompactLoopMachines.TIERS));
         }
         return lines;
     }

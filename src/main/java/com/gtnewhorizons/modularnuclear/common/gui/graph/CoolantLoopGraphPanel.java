@@ -12,11 +12,11 @@ import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.pump.ICoolantPumpHost;
 import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.gui.LockIconWidget;
 import com.gtnewhorizons.modularnuclear.common.gui.PanelDragHandle;
 import com.gtnewhorizons.modularnuclear.common.gui.ResizeableFloatingPanel;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 
 /**
  * Builds the floating, movable, resizable Coolant Loop Graph window.
@@ -25,7 +25,7 @@ public class CoolantLoopGraphPanel {
 
     public static final String PANEL_NAME = "coolantLoopGraphPanel";
 
-    public static ModularPanel createPanel(PanelSyncManager syncManager, ModularPanel parent, MTECoolantPump pump) {
+    public static ModularPanel createPanel(PanelSyncManager syncManager, ModularPanel parent, ICoolantPumpHost pump) {
         ModularPanel panel = new ResizeableFloatingPanel(PANEL_NAME, parent).relativeToScreen()
             .center()
             .size(380, 250)
