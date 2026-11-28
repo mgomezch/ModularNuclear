@@ -67,6 +67,17 @@ public class MTECompactExpander extends MTECompactLoopMachine implements GasPres
         return true;
     }
 
+    /** It charges the power slot's item, whenever it holds power. See Note [The compact machines' power slot] */
+    @Override
+    public boolean hasPowerSlot() {
+        return true;
+    }
+
+    @Override
+    public int rechargerSlotCount() {
+        return 1;
+    }
+
     @Override
     public boolean isEnetOutput() {
         return true;

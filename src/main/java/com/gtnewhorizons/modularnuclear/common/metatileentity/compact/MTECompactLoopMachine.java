@@ -115,12 +115,13 @@ public abstract class MTECompactLoopMachine extends MTETieredMachineBlock implem
     private String cachedDeviceId;
 
     protected MTECompactLoopMachine(int aID, String aName, String aNameRegional, int aTier, int aInvSlotCount) {
-        super(aID, aName, aNameRegional, aTier, aInvSlotCount, new String[0]);
+        // One more slot, the last, for power: see Note [The compact machines' power slot]
+        super(aID, aName, aNameRegional, aTier, aInvSlotCount + 1, new String[0]);
     }
 
     protected MTECompactLoopMachine(String aName, int aTier, int aInvSlotCount, String[] aDescription,
         ITexture[][][] aTextures) {
-        super(aName, aTier, aInvSlotCount, aDescription, aTextures);
+        super(aName, aTier, aInvSlotCount + 1, aDescription, aTextures);
     }
 
     // --- What each machine sets ---
@@ -276,6 +277,48 @@ public abstract class MTECompactLoopMachine extends MTETieredMachineBlock implem
     @Override
     public long getMinimumStoredEU() {
         return usesPower() ? GTValues.V[mTier] * 2L : 0L;
+    }
+
+    // --- Power slot: see Note [The compact machines' power slot]
+
+    /** The power slot's index: the inventory's last. */
+    public int getPowerSlot() {
+        return mInventory.length - 1;
+    }
+
+    /** Whether the machine has a power slot: whether it takes or gives EU. */
+    public boolean hasPowerSlot() {
+        return usesPower();
+    }
+
+    /** Whether the machine runs from the power slot's item, or only charges it. */
+    public boolean drawsFromPowerSlot() {
+        return usesPower();
+    }
+
+    @Override
+    public int rechargerSlotStartIndex() {
+        return getPowerSlot();
+    }
+
+    @Override
+    public int rechargerSlotCount() {
+        return hasPowerSlot() && CompactPowerSlot.charges(getBaseMetaTileEntity()) ? 1 : 0;
+    }
+
+    @Override
+    public int dechargerSlotStartIndex() {
+        return getPowerSlot();
+    }
+
+    @Override
+    public int dechargerSlotCount() {
+        return drawsFromPowerSlot() && CompactPowerSlot.draws(getBaseMetaTileEntity()) ? 1 : 0;
+    }
+
+    @Override
+    public boolean isValidSlot(int index) {
+        return index != getPowerSlot() || hasPowerSlot();
     }
 
     /** EU the machine holds now. */

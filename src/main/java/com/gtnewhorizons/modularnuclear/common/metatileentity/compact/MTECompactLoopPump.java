@@ -63,11 +63,12 @@ public class MTECompactLoopPump extends MTETieredMachineBlock
     private PumpLimits mLimits;
 
     public MTECompactLoopPump(int aID, String aName, String aNameRegional, int aTier) {
-        super(aID, aName, aNameRegional, aTier, 0, new String[0]);
+        // One slot, for power: see Note [The compact machines' power slot]
+        super(aID, aName, aNameRegional, aTier, 1, new String[0]);
     }
 
     public MTECompactLoopPump(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
-        super(aName, aTier, 0, aDescription, aTextures);
+        super(aName, aTier, 1, aDescription, aTextures);
     }
 
     @Override
@@ -349,6 +350,33 @@ public class MTECompactLoopPump extends MTETieredMachineBlock
     @Override
     public long getMinimumStoredEU() {
         return GTValues.V[mTier] * 2L;
+    }
+
+    // --- Power slot: see Note [The compact machines' power slot]
+
+    /** The power slot's index: the inventory's last. */
+    public int getPowerSlot() {
+        return mInventory.length - 1;
+    }
+
+    @Override
+    public int rechargerSlotStartIndex() {
+        return getPowerSlot();
+    }
+
+    @Override
+    public int rechargerSlotCount() {
+        return CompactPowerSlot.charges(getBaseMetaTileEntity()) ? 1 : 0;
+    }
+
+    @Override
+    public int dechargerSlotStartIndex() {
+        return getPowerSlot();
+    }
+
+    @Override
+    public int dechargerSlotCount() {
+        return CompactPowerSlot.draws(getBaseMetaTileEntity()) ? 1 : 0;
     }
 
     // --- Readouts ---
